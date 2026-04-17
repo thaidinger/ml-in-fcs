@@ -17,8 +17,9 @@ from fts_diffusion.data.loading import LoadedSeries, load_financial_series
 from fts_diffusion.models.autoencoder import ScalingAutoencoder
 from fts_diffusion.models.diffusion import ConditionalDiffusionModel
 from fts_diffusion.models.evolution import PatternEvolutionNetwork
-from fts_diffusion.models.sisc import SISC, SISCResult
+from fts_diffusion.models.sisc import SISC, SISCResult, dtw_distance
 from fts_diffusion.utils.io import ensure_dir, load_json, save_json
+from fts_diffusion.utils.interpolation import rms_scale, z_normalize
 from fts_diffusion.utils.random import seed_everything
 
 
@@ -52,7 +53,7 @@ class PatternGenerator(nn.Module):
             device=fixed.device,
         )
         noise = torch.randn_like(fixed)
-        noisy = self.diffusion.q_sample(fixed, timesteps, noise)
+        noisy = self.diffusion.q_sample(fixed, timesteps, noise, batch["pattern"])
         noise_prediction = self.diffusion(noisy, timesteps, batch["pattern"])
         diffusion_loss = F.mse_loss(noise_prediction, noise)
         total = reconstruction_loss + diffusion_loss
@@ -282,17 +283,33 @@ def _load_bundle(run_dir: str | Path) -> tuple[ExperimentConfig, np.ndarray, lis
     return config, patterns, segment_bank, generator, evolution, device
 
 
+def _infer_transition_state(
+    segment: np.ndarray,
+    patterns: np.ndarray,
+    reference_length: int,
+) -> tuple[int, float, float]:
+    normalized = z_normalize(segment)
+    distances = [dtw_distance(normalized, pattern) for pattern in patterns]
+    cluster_id = int(np.argmin(distances))
+    alpha = float(len(segment) / max(reference_length, 1))
+    beta = float(rms_scale(segment))
+    return cluster_id, alpha, beta
+
+
 @torch.no_grad()
 def sample_from_run(run_dir: str | Path, terminal_length: int | None = None, output_path: str | Path | None = None) -> np.ndarray:
     config, patterns, segment_bank, generator, evolution, device = _load_bundle(run_dir)
     terminal_length = terminal_length or config.sampling.default_terminal_length
     rng = np.random.default_rng(config.runtime.seed)
     seed_item = segment_bank[int(rng.integers(0, len(segment_bank)))]
+    reference_length = int(config.pattern.centroid_length or generator.fixed_length)
+    seed_segment = np.asarray(seed_item["raw"], dtype=np.float32)
+    seed_pattern, seed_alpha, seed_beta = _infer_transition_state(seed_segment, patterns, reference_length)
 
-    generated: list[float] = list(seed_item["raw"])
-    current_pattern = torch.tensor([seed_item["cluster_id"]], dtype=torch.long, device=device)
-    current_alpha = torch.tensor([seed_item["alpha"]], dtype=torch.float32, device=device)
-    current_beta = torch.tensor([seed_item["beta"]], dtype=torch.float32, device=device)
+    generated: list[float] = list(seed_segment)
+    current_pattern = torch.tensor([seed_pattern], dtype=torch.long, device=device)
+    current_alpha = torch.tensor([seed_alpha], dtype=torch.float32, device=device)
+    current_beta = torch.tensor([seed_beta], dtype=torch.float32, device=device)
 
     while len(generated) < terminal_length:
         next_pattern, next_alpha, next_beta = evolution.sample_next_state(
@@ -300,14 +317,20 @@ def sample_from_run(run_dir: str | Path, terminal_length: int | None = None, out
             current_alpha,
             current_beta,
             temperature=config.sampling.temperature,
-            alpha_noise=config.sampling.alpha_noise,
-            beta_noise=config.sampling.beta_noise,
             min_beta=config.sampling.min_beta,
         )
         pattern_tensor = torch.tensor(patterns[next_pattern.cpu().numpy()], dtype=torch.float32, device=device)
         segment = generator.sample_segment(pattern_tensor, next_alpha, next_beta)
-        generated.extend(segment.detach().cpu().tolist())
-        current_pattern, current_alpha, current_beta = next_pattern, next_alpha, next_beta
+        segment_array = segment.detach().cpu().numpy().astype(np.float32)
+        generated.extend(segment_array.tolist())
+        realized_pattern, realized_alpha, realized_beta = _infer_transition_state(
+            segment_array,
+            patterns,
+            reference_length,
+        )
+        current_pattern = torch.tensor([realized_pattern], dtype=torch.long, device=device)
+        current_alpha = torch.tensor([realized_alpha], dtype=torch.float32, device=device)
+        current_beta = torch.tensor([realized_beta], dtype=torch.float32, device=device)
 
     output = np.asarray(generated[:terminal_length], dtype=np.float32)
     if output_path is not None:
@@ -319,4 +342,3 @@ def sample_from_run(run_dir: str | Path, terminal_length: int | None = None, out
 
 def train_from_path(config_path: str | Path) -> Path:
     return train_from_config(load_experiment_config(config_path))
-

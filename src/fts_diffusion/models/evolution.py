@@ -38,13 +38,11 @@ class PatternEvolutionNetwork(nn.Module):
         alpha: torch.Tensor,
         beta: torch.Tensor,
         temperature: float,
-        alpha_noise: float,
-        beta_noise: float,
         min_beta: float,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         logits, alpha_prediction, beta_prediction = self.forward(pattern_id, alpha, beta)
         probabilities = torch.softmax(logits / max(temperature, 1e-6), dim=-1)
         next_pattern = torch.multinomial(probabilities, num_samples=1).squeeze(1)
-        next_alpha = torch.clamp(alpha_prediction + alpha_noise * torch.randn_like(alpha_prediction), min=0.25)
-        next_beta = torch.clamp(beta_prediction + beta_noise * torch.randn_like(beta_prediction), min=min_beta)
+        next_alpha = torch.clamp(alpha_prediction, min=0.25)
+        next_beta = torch.clamp(beta_prediction, min=min_beta)
         return next_pattern, next_alpha, next_beta

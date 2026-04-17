@@ -95,25 +95,33 @@ class ConditionalDiffusionModel(nn.Module):
             x = block(x, time_emb, condition)
         return self.output_projection(x).squeeze(1)
 
-    def q_sample(self, clean: torch.Tensor, timesteps: torch.Tensor, noise: torch.Tensor) -> torch.Tensor:
+    def q_sample(
+        self,
+        clean: torch.Tensor,
+        timesteps: torch.Tensor,
+        noise: torch.Tensor,
+        pattern: torch.Tensor,
+    ) -> torch.Tensor:
         scale = self.sqrt_alphas_cumprod[timesteps].unsqueeze(1)
         noise_scale = self.sqrt_one_minus_alphas_cumprod[timesteps].unsqueeze(1)
-        return scale * clean + noise_scale * noise
+        return pattern + scale * (clean - pattern) + noise_scale * noise
 
     @torch.no_grad()
     def sample(self, pattern: torch.Tensor, device: torch.device) -> torch.Tensor:
         batch_size = pattern.shape[0]
-        current = torch.randn(batch_size, self.fixed_length, device=device)
+        current = pattern + torch.randn(batch_size, self.fixed_length, device=device)
         for timestep in reversed(range(self.diffusion_steps)):
             t = torch.full((batch_size,), timestep, device=device, dtype=torch.long)
             noise_prediction = self.forward(current, t, pattern)
             alpha = self.alphas[t].unsqueeze(1)
             alpha_bar = self.alphas_cumprod[t].unsqueeze(1)
             beta = self.betas[t].unsqueeze(1)
-            mean = (current - ((1 - alpha) / torch.sqrt(1 - alpha_bar)) * noise_prediction) / torch.sqrt(alpha)
+            residual = current - pattern
+            mean_residual = (
+                residual - ((1 - alpha) / torch.sqrt(1 - alpha_bar)) * noise_prediction
+            ) / torch.sqrt(alpha)
             if timestep > 0:
-                current = mean + torch.sqrt(beta) * torch.randn_like(current)
+                current = pattern + mean_residual + torch.sqrt(beta) * torch.randn_like(current)
             else:
-                current = mean
+                current = pattern + mean_residual
         return current
-
