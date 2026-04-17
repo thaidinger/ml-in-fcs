@@ -1,0 +1,57 @@
+data:
+  path: data/asset.csv
+  value_column: close
+  date_column: date
+  input_type: close
+  train_ratio: 0.8
+  standardize: true
+  output_series_name: returns
+
+pattern:
+  num_patterns: 14
+  min_length: 10
+  max_length: 21
+  max_iters: 10
+  init_length: 21
+  centroid_length: 21
+  dtw_window:
+  random_restarts: 1
+
+generation:
+  fixed_length: 21
+  hidden_dim: 64
+  rnn_type: gru
+  rnn_layers: 2
+  diffusion_steps: 100
+  residual_blocks: 6
+  tcn_channels: 64
+  kernel_size: 3
+  learning_rate: 0.0005
+  weight_decay: 0.0
+  batch_size: 32
+  epochs: 200
+  grad_clip_norm: 1.0
+
+evolution:
+  hidden_dim: 128
+  num_layers: 3
+  dropout: 0.1
+  learning_rate: 0.0004
+  weight_decay: 0.0
+  batch_size: 128
+  epochs: 1000
+  grad_clip_norm: 1.0
+
+sampling:
+  temperature: 1.0
+  alpha_noise: 0.05
+  beta_noise: 0.05
+  min_beta: 0.001
+  default_terminal_length: 2048
+
+runtime:
+  seed: 42
+  device: auto
+  num_workers: 0
+  output_dir: outputs/default
+  checkpoint_every: 25
