@@ -369,7 +369,7 @@ if __name__ == "__main__":
     X_synth = model.sample(init_seg, target_len=1000)
     
     print("\n" + "="*50)
-    print(f"✅ Synthesized series length: {len(X_synth)}")
-    print(f"📊 Real Mean/Std: {np.mean(X[:1000]):.4f} / {np.std(X[:1000]):.4f}")
-    print(f"📊 Synth Mean/Std: {np.mean(X_synth):.4f} / {np.std(X_synth):.4f}")
+    print(f"Synthesized series length: {len(X_synth)}")
+    print(f"Real Mean/Std: {np.mean(X[:1000]):.4f} / {np.std(X[:1000]):.4f}")
+    print(f"Synth Mean/Std: {np.mean(X_synth):.4f} / {np.std(X_synth):.4f}")
     print("="*50)
