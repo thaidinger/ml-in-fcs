@@ -1,0 +1,202 @@
+\section{Sampling Pipeline: Design Analysis and Teacher-Free Rollout}
+\label{sec:sampling-design}
+
+\subsection{Current Reference Implementation}
+
+The sampling loop in \texttt{models/sampling.py} (lines 88--98) implements a straightforward autoregressive generation:
+
+\begin{lstlisting}[language=python, caption={Reference sampling implementation (no re-inference).}, captionpos=b, label=lst:ref-sampling]
+while curr_T < T:
+  state = torch.tensor(state).to(device)
+
+  # Step 1: Predict next state via evolution module
+  state = state_evolution_ftsdiffusion(model['evolution'], state, l_min)
+  # Output: (p_pred, l_pred, m_pred) from softmax / regression heads
+
+  # Step 2: Generate new segment conditioned on predicted state
+  segment = segment_generation_ftsdiffusion(model['generation'], state, patterns)
+  # Decodes diffusion sample, applies predicted scales (l_pred, m_pred)
+
+  # Step 3: Continuity adjustment (drift compensation)
+  segment = segment - segment[0] + timeseries[-1]
+
+  # Step 4: Accumulate
+  timeseries.extend(segment)
+  curr_T += segment_length
+\end{lstlisting}
+
+The state flows through the loop as:
+\begin{align}
+  \mathbf{s}_0 &= \text{init\_state} \\
+  \mathbf{s}_{t+1}^{\text{pred}} &= \text{PEM}(\mathbf{s}_t) \quad \text{[Evolution]}\\
+  \mathbf{x}_{t+1} &= \text{PGM}(\mathbf{s}_{t+1}^{\text{pred}}, \mathbf{p}) \quad \text{[Generation]}\\
+  \mathbf{s}_t &\leftarrow \mathbf{s}_{t+1}^{\text{pred}} \quad \text{[Next iteration]}
+\end{align}
+
+\paragraph{Key Design Choice.} The evolution module predicts $(\mathbf{p}_{t+1}, l_{t+1}, m_{t+1})$ in state $\mathbf{s}_{t+1}^{\text{pred}}$. This predicted state is \textbf{immediately used as the conditioning} for the generation module, without validation that the generated segment actually realizes those properties.
+
+\subsection{Teacher-Free Rollout: The Alternative}
+
+A teacher-free (or closed-loop) sampling strategy would re-classify each generated segment back into the pattern space:
+
+\begin{lstlisting}[language=python, caption={Proposed teacher-free rollout with state re-inference.}, captionpos=b, label=lst:tfr-sampling]
+while curr_T < T:
+  state = torch.tensor(state).to(device)
+
+  # Step 1: Predict next state
+  state_pred = state_evolution_ftsdiffusion(model['evolution'], state, l_min)
+
+  # Step 2: Generate new segment
+  segment = segment_generation_ftsdiffusion(model['generation'], state_pred, patterns)
+  segment = segment - segment[0] + timeseries[-1]
+
+  # Step 3 (NEW): Re-infer the realized state from the generated segment
+  segment_np = segment.detach().cpu().numpy()
+
+  # Normalize and compute DTW distance to all patterns
+  segment_normalized = z_normalize(segment_np)
+  distances = [dtw_distance(segment_normalized, pattern) for pattern in patterns]
+  p_realized = int(np.argmin(distances))
+
+  # Estimate realized scale parameters
+  l_realized = len(segment_np)
+  m_realized = rms_scale(segment_np)  # or max-min, depending on convention
+
+  state_realized = torch.tensor([[p_realized, l_realized, m_realized]])
+
+  # Step 4: Use REALIZED state for next iteration
+  state = state_realized  # NOT state_pred
+
+  timeseries.extend(segment)
+  curr_T += segment_length
+\end{lstlisting}
+
+The key difference is line 24 (commented as Step 4): instead of
+\begin{align}
+  \mathbf{s}_t &\leftarrow \mathbf{s}_{t+1}^{\text{pred}} \quad \text{[Reference]}
+\end{align}
+
+we use
+\begin{align}
+  \mathbf{s}_t &\leftarrow \mathbf{s}_{t+1}^{\text{real}} \quad \text{[Teacher-free]}
+\end{align}
+
+where $\mathbf{s}_{t+1}^{\text{real}} = (\mathbf{p}_{\text{real}}, l_{\text{real}}, m_{\text{real}})$ is inferred from the actual generated segment via DTW classification.
+
+\subsection{Why This Distinction Matters}
+
+\paragraph{Mismatch and Accumulation.} The generation module PGM is trained to produce segments matching the input $(\alpha, \beta)$ scales. However, in practice:
+\begin{enumerate}[leftmargin=*,topsep=2pt,itemsep=2pt]
+  \item The generation module may not perfectly realize the predicted scales: the actual output segment has length $l_{\text{real}} \neq l_{\text{pred}}$ and magnitude $m_{\text{real}} \neq m_{\text{pred}}$.
+  \item The evolution module, during training, was conditioned on \emph{real} segments from SISC (with ground-truth scale parameters), not on segments that have already accumulated generation error.
+  \item Using $\mathbf{s}_{t+1}^{\text{pred}}$ as input to the next evolution step means the PEM operates on a distribution it never saw during training.
+\end{enumerate}
+
+Over many iterations, this distribution shift can compound. The chain drifts further and further from the training data manifold.
+
+\paragraph{Connection to Predictable Drift.} This is directly relevant to the $\Delta$-diagnostic in the predictable-drift hypothesis (\texttt{predictable\_drift.pdf}):
+\begin{itemize}[leftmargin=*,topsep=2pt,itemsep=2pt]
+  \item If generation error compounds without correction, the synthetic chain's pattern-transition statistics will diverge from the real data's.
+  \item A forecasting model trained on real patterns may fail on synthetic patterns, or vice versa.
+  \item This could artificially amplify or suppress predictability, confounding the evaluation.
+\end{itemize}
+
+Teacher-free rollout keeps the synthetic chain on the manifold the evolution module was trained on, reducing this form of artifactual drift.
+
+\subsection{Trade-Offs and Implementation Considerations}
+
+\paragraph{Computational Cost.} Teacher-free rollout requires:
+\begin{itemize}[leftmargin=*,topsep=2pt,itemsep=2pt]
+  \item Computing DTW distance from each generated segment to all $K$ patterns: $O(K \cdot l_{\max}^2)$ per segment.
+  \item In a typical run ($T = 2000$, $l_{\max} = 21$, $K = 14$), this is $2000 / 15 \approx 133$ segments, so $\sim 570k$ DTW distance evaluations.
+  \item Reference implementation: No re-inference, just forward passes.
+\end{itemize}
+
+For Colab, this is acceptable; for real-time or massive-scale applications, it becomes a bottleneck.
+
+\paragraph{Fidelity vs.\ Training Mismatch.} Two views:
+\begin{description}[leftmargin=!,labelwidth=\widthof{Teacher-free}]
+  \item[Reference] Trusts that PGM is faithful. If PGM is well-trained, the predicted and realized states are nearly identical, and the distinction is moot.
+  \item[Teacher-free] Does not assume PGM fidelity. Uses actual segment properties to inform the next step. More robust to imperfect generation.
+\end{description}
+
+\subsection{Proposed Ablation Study}
+
+To quantify the impact, we propose a three-way comparison:
+
+\subsubsection{Experiment Setup}
+
+\begin{enumerate}[leftmargin=*,topsep=2pt,itemsep=2pt]
+  \item \textbf{Train baseline:} Run the reference pipeline to completion (SISC + PGM + PEM).
+  \item \textbf{Baseline sampling:} Generate $M = 5$ synthetic series of length $T = 2000$ using the reference loop (no re-inference).
+  \item \textbf{Teacher-free sampling:} Generate $M = 5$ synthetic series using the proposed loop (with DTW re-inference, Algorithm~\ref{alg:tfr}).
+  \item \textbf{Metrics:}
+  \begin{itemize}[leftmargin=*,topsep=2pt,itemsep=2pt]
+    \item \textbf{Stylized facts:} Mean, std, skewness, kurtosis, autocorrelation, volatility clustering.
+    \item \textbf{Pattern distributions:} Histogram of $(p, l, m)$ realized in synthetic series vs.\ real data.
+    \item \textbf{Predictable drift:} Compute $\Delta$ for a simple ARMA predictor trained on real data, tested on synthetic data.
+    \item \textbf{Downstream (TATR):} Autoregressive model performance on synthetic vs.\ real.
+  \end{itemize}
+\end{enumerate}
+
+\subsubsection{Expected Outcomes}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+\textbf{Metric} & \textbf{Reference (no re-inference)} & \textbf{Teacher-free (re-infer)} \\
+\midrule
+Stylized facts match & Moderate & Better \\
+Pattern dist.\ match & Moderate & Better \\
+Drift $\Delta$ & Possibly higher & Potentially lower \\
+TATR predictability & ? & ? \\
+Computation time & Fast & $\sim 30\%$ slower \\
+\bottomrule
+\end{tabular}
+\caption{Expected qualitative outcomes of the ablation study.}
+\label{tab:ablation-outcomes}
+\end{table}
+
+If $\Delta$ goes \textbf{down} (better) with re-inference, it supports the hypothesis that generation error was a source of artifactual drift.
+If $\Delta$ is \textbf{unchanged}, the generation module may already be faithful, and the design choice is moot.
+
+\subsection{DTW: A Load-Bearing Component at Two Stages}
+
+\paragraph{SISC Training Time.} DTW is used to:
+\begin{itemize}[leftmargin=*,topsep=2pt,itemsep=2pt]
+  \item Compute pairwise distances between segments for clustering.
+  \item Compute DTW barycenters (cluster centroids).
+\end{itemize}
+
+\paragraph{Inference Time (if re-inference is enabled).} DTW is used to:
+\begin{itemize}[leftmargin=*,topsep=2pt,itemsep=2pt]
+  \item Classify each generated segment into the nearest pattern.
+  \item Provide the realized state for the next evolution step.
+\end{itemize}
+
+\paragraph{Critical Observation.} A bug or performance regression in the DTW implementation affects \textbf{both training and inference}:
+\begin{itemize}[leftmargin=*,topsep=2pt,itemsep=2pt]
+  \item If DTW is incorrect during SISC, the learned centroids are wrong, poisoning the entire pipeline.
+  \item If DTW is incorrect during re-inference, the realized states are misclassified, causing state drift.
+\end{itemize}
+
+We recommend:
+\begin{enumerate}[leftmargin=*,topsep=2pt,itemsep=2pt]
+  \item \textbf{Verify DTW implementation:} Unit tests with known sequences, comparison to reference libraries (e.g., \texttt{dtaidistance}, \texttt{dtw-python}).
+  \item \textbf{Version lock:} Document the exact DTW variant used (e.g., Sakoe-Chiba band, local constraints).
+  \item \textbf{Reproducibility:} Store computed DTW matrices for SISC artifacts, so re-inference uses the same distance metric.
+\end{enumerate}
+
+\subsection{Recommendation for Paper}
+
+We propose three sections:
+
+\begin{enumerate}[leftmargin=*,topsep=2pt,itemsep=2pt]
+  \item \textbf{Main text:} Brief mention of the reference design (no re-inference) and why it was chosen (simplicity, speed).
+  \item \textbf{Appendix or supplementary:} Full derivation and pseudocode for teacher-free rollout.
+  \item \textbf{Ablation section:} Three-way comparison (baseline reference, teacher-free, and if possible, a hybrid) with plots of stylized facts and $\Delta$ scores.
+\end{enumerate}
+
+If teacher-free rollout significantly reduces $\Delta$, it becomes a core contribution: \emph{showing that feedback-based state correction is necessary to avoid artifactual predictability in diffusion-based generative time series models}.

@@ -1,2 +1,2 @@
-*.pdf
 code_from_authors/
+*__pycache__/
