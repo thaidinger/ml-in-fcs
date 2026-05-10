@@ -1,0 +1,17 @@
+{
+  "actual_output_dir": "drift_component/outputs/drift_diagnostics",
+  "checkpoints_found": [],
+  "config_used": null,
+  "evaluator_returncode": 0,
+  "evaluator_stderr": "",
+  "evaluator_stdout": "Wrote predictable-drift diagnostics to drift_component/outputs/drift_diagnostics\n",
+  "existing_samples_found": [],
+  "mode": "toy_smoke",
+  "real_data_found": "drift_component/outputs/drift_diagnostics/toy_inputs/iid_gaussian_returns.csv",
+  "requested_output_dir": "drift_component/outputs/drift_diagnostics",
+  "run_dir": "outputs/default",
+  "selected_synthetic": [
+    "drift_component/outputs/drift_diagnostics/toy_inputs/ar1_phi_0_4_returns.csv",
+    "drift_component/outputs/drift_diagnostics/toy_inputs/block_shuffled_iid_returns.csv"
+  ]
+}

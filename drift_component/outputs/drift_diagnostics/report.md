@@ -1,0 +1,50 @@
+# Predictable-Drift Diagnostic Report
+
+| source_type | sample_id                  | n_obs | pooled_delta | rolling_delta_mean | rolling_delta_std | acf_abs_r_lag1 | excess_kurtosis |
+| ----------- | -------------------------- | ----- | ------------ | ------------------ | ----------------- | -------------- | --------------- |
+| real        | test                       | 410   | 0.150908     | 0.167507           | 0.0232844         | -0.0211097     | -0.286709       |
+| synthetic   | ar1_phi_0_4_returns        | 2048  | 0.52842      | 0.562294           | 0.110518          | 0.124045       | -0.158445       |
+| synthetic   | block_shuffled_iid_returns | 2048  | 0.0313112    | 0.115289           | 0.0481394         | -0.0232128     | 0.0290231       |
+| null        | block_shuffle_summary      | 410   | 0.160453     | 0.193562           | 0.0539744         | -0.0311569     | -0.286709       |
+
+Lower delta means less predictable drift under the fixed feature map; this is not a full martingale/no-arbitrage proof.
+
+The diagnostic uses standardized returns with training-split mean and standard deviation.
+
+## Metadata
+
+```json
+{
+  "config": null,
+  "date_column": "date",
+  "eval_split": "test",
+  "input_type": "return",
+  "interpretation": "Lower delta means less predictable drift under the fixed feature map; this is not a full martingale/no-arbitrage proof.",
+  "n_eval": 410,
+  "n_real_total": 2048,
+  "n_train": 1638,
+  "null_summary": {
+    "delta_max": 0.1662577829494825,
+    "delta_mean": 0.16045299415497744,
+    "delta_min": 0.14943822498317388,
+    "delta_q05": 0.15207952621285323,
+    "delta_q50": 0.1611621332804689,
+    "delta_q95": 0.1662219131714751,
+    "delta_std": 0.005048159440005852,
+    "n_reps": 10
+  },
+  "real_csv": "drift_component/outputs/drift_diagnostics/toy_inputs/iid_gaussian_returns.csv",
+  "run_dir": "outputs/default",
+  "synthetic_csv": [
+    "drift_component/outputs/drift_diagnostics/toy_inputs/ar1_phi_0_4_returns.csv",
+    "drift_component/outputs/drift_diagnostics/toy_inputs/block_shuffled_iid_returns.csv"
+  ],
+  "synthetic_input_type": "return",
+  "test_fraction": null,
+  "train_fraction": 0.8,
+  "train_mean": -0.007368779621342509,
+  "train_std": 0.9907178076891772,
+  "val_fraction": 0.0,
+  "value_column": "return"
+}
+```
