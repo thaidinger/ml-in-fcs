@@ -224,6 +224,7 @@ asset. Do not select `lambda` using the final hold-out.
 drift_component/
   README.md                         quick start
   DRIFT_COMPONENT_README.md          conceptual and mathematical framing
+  predictable_drift_colab.ipynb      self-contained Colab notebook
   docs/predictable_drift.md          compact method note
   configs/drift_penalty.yaml         disabled penalty config snippet
   requirements.txt                   lightweight dependencies
@@ -359,4 +360,3 @@ The main limitation statement:
 This diagnostic checks a fixed finite-dimensional implication of the
 martingale-difference condition. It does not prove full no-arbitrage.
 ```
-

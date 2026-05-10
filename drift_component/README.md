@@ -8,6 +8,8 @@ training implementation.
 For the full mathematical framing and report-ready explanation, see
 `DRIFT_COMPONENT_README.md`.
 
+For a Colab-ready notebook, open `predictable_drift_colab.ipynb`.
+
 ## Install
 
 From the repository root:
