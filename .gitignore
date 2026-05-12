@@ -1,2 +1,17 @@
 code_from_authors/
 *__pycache__/
+
+# Colleagues' reference presentation (kept locally only)
+ML_Finance_and_Complex_Systems_Presentation/
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.nav
+*.out
+*.snm
+*.toc
+*.vrb
+*.fls
+*.fdb_latexmk
+*.synctex.gz
