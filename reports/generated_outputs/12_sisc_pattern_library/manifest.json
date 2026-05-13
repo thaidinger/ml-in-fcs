@@ -1,0 +1,18 @@
+{
+  "assets": [
+    "goog",
+    "zcf"
+  ],
+  "k": 11,
+  "files": [
+    "goog_k11_pattern_library.pdf",
+    "goog_k11_pattern_library.png",
+    "goog_k11_pattern_stats.pdf",
+    "goog_k11_pattern_stats.png",
+    "pattern_library_summary.csv",
+    "zcf_k11_pattern_library.pdf",
+    "zcf_k11_pattern_library.png",
+    "zcf_k11_pattern_stats.pdf",
+    "zcf_k11_pattern_stats.png"
+  ]
+}

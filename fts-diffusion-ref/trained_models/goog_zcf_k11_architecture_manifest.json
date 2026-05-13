@@ -1,0 +1,32 @@
+[
+  {
+    "asset": "goog",
+    "k": 11,
+    "n_prices": 3775,
+    "outputs": {
+      "pgm_state_dict": "/Users/ericshao/Documents/GitHub/ml-in-fcs/fts-diffusion-ref/trained_models/pgm-2_c48-80_goog_k11_n30_lr4e-04_dw0.01_pw1_sw0.01.pth",
+      "pgm_full_model": "/Users/ericshao/Documents/GitHub/ml-in-fcs/fts-diffusion-ref/trained_models/pgm-2_c48-80_goog_k11_n30_lr4e-04_dw0.01_pw1_sw0.01.pt",
+      "pem_state_dict": "/Users/ericshao/Documents/GitHub/ml-in-fcs/fts-diffusion-ref/trained_models/pem_goog_k11_e196_h32_lr4e-04_pw0.05_lw0.01_mw0.94.pth",
+      "pem_full_model": "/Users/ericshao/Documents/GitHub/ml-in-fcs/fts-diffusion-ref/trained_models/pem_goog_k11_e196_h32_lr4e-04_pw0.05_lw0.01_mw0.94.pt",
+      "sisc_centroids": "/Users/ericshao/Documents/GitHub/ml-in-fcs/fts-diffusion-ref/res/sisc_goog_k11_l10-21_dba_kmpp_centroids.csv",
+      "sisc_labels": "/Users/ericshao/Documents/GitHub/ml-in-fcs/fts-diffusion-ref/res/sisc_goog_k11_l10-21_dba_kmpp_labels.csv",
+      "sisc_subsequences": "/Users/ericshao/Documents/GitHub/ml-in-fcs/fts-diffusion-ref/res/sisc_goog_k11_l10-21_dba_kmpp_subsequences.csv",
+      "sisc_segmentation": "/Users/ericshao/Documents/GitHub/ml-in-fcs/fts-diffusion-ref/res/sisc_goog_k11_l10-21_dba_kmpp_segmentation.csv"
+    }
+  },
+  {
+    "asset": "zcf",
+    "k": 11,
+    "n_prices": 4763,
+    "outputs": {
+      "pgm_state_dict": "/Users/ericshao/Documents/GitHub/ml-in-fcs/fts-diffusion-ref/trained_models/pgm-2_c48-80_zcf_k11_n30_lr4e-04_dw0.01_pw1_sw0.01.pth",
+      "pgm_full_model": "/Users/ericshao/Documents/GitHub/ml-in-fcs/fts-diffusion-ref/trained_models/pgm-2_c48-80_zcf_k11_n30_lr4e-04_dw0.01_pw1_sw0.01.pt",
+      "pem_state_dict": "/Users/ericshao/Documents/GitHub/ml-in-fcs/fts-diffusion-ref/trained_models/pem_zcf_k11_e196_h32_lr4e-04_pw0.05_lw0.01_mw0.94.pth",
+      "pem_full_model": "/Users/ericshao/Documents/GitHub/ml-in-fcs/fts-diffusion-ref/trained_models/pem_zcf_k11_e196_h32_lr4e-04_pw0.05_lw0.01_mw0.94.pt",
+      "sisc_centroids": "/Users/ericshao/Documents/GitHub/ml-in-fcs/fts-diffusion-ref/res/sisc_zcf_k11_l10-21_dba_kmpp_centroids.csv",
+      "sisc_labels": "/Users/ericshao/Documents/GitHub/ml-in-fcs/fts-diffusion-ref/res/sisc_zcf_k11_l10-21_dba_kmpp_labels.csv",
+      "sisc_subsequences": "/Users/ericshao/Documents/GitHub/ml-in-fcs/fts-diffusion-ref/res/sisc_zcf_k11_l10-21_dba_kmpp_subsequences.csv",
+      "sisc_segmentation": "/Users/ericshao/Documents/GitHub/ml-in-fcs/fts-diffusion-ref/res/sisc_zcf_k11_l10-21_dba_kmpp_segmentation.csv"
+    }
+  }
+]

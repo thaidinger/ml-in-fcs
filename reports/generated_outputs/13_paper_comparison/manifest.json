@@ -1,0 +1,12 @@
+{
+  "comparison": "GOOG/ZC=F SISC and architecture outputs vs FTS-Diffusion paper",
+  "files": [
+    "COMPARISON.md"
+  ],
+  "depends_on": [
+    "reports/generated_outputs/12_sisc_pattern_library",
+    "fts-diffusion-ref/res/sisc_goog_k11_l10-21_dba_kmpp_*",
+    "fts-diffusion-ref/res/sisc_zcf_k11_l10-21_dba_kmpp_*",
+    "fts-diffusion-ref/trained_models/goog_zcf_k11_architecture_manifest.json"
+  ]
+}
