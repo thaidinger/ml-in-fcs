@@ -1,4 +1,4 @@
-# FTS-Diffusion
+# FTS-Diffusion Replication Workspace
 
 Paper-faithful implementation of **FTS-Diffusion** from:
 
@@ -6,7 +6,11 @@ Paper-faithful implementation of **FTS-Diffusion** from:
 - OpenReview: <https://openreview.net/forum?id=CdjnzWsQax>
 - ICLR proceedings page: <https://proceedings.iclr.cc/paper_files/paper/2024/hash/f90fc76b199fe6b0ec2a51aaf72c3277-Abstract-Conference.html>
 
-I could not locate an official public repository for the paper from the paper pages or common curated lists, so this repo implements the method directly from the paper and appendix.
+This workspace contains three distinct pieces:
+
+- a local implementation under `src/fts_diffusion/`
+- preserved author/reference code under `fts-diffusion-ref/`
+- replication diagnostics and generated artifacts under `reports/generated_outputs/`
 
 ## What Is Implemented
 
@@ -38,17 +42,18 @@ The repository follows the paper's three-module decomposition:
 ## Repo Layout
 
 ```text
-configs/default.yaml               Default experiment config
-scripts/train_fts_diffusion.py     Training entrypoint
-scripts/sample_fts_diffusion.py    Sampling entrypoint
-src/fts_diffusion/config.py        Structured experiment config
-src/fts_diffusion/data/            Data loading and datasets
-src/fts_diffusion/models/sisc.py   SISC pattern recognition
-src/fts_diffusion/models/autoencoder.py
-src/fts_diffusion/models/diffusion.py
-src/fts_diffusion/models/evolution.py
-src/fts_diffusion/training/pipeline.py
+configs/default.yaml                 Default local implementation config
+scripts/                             Reproducible run and diagnostic entrypoints
+src/fts_diffusion/                   Local package implementation
+notebooks/                           Exploratory and Colab-oriented notebooks
+docs/references/                     Paper/reference PDFs
+docs/notes/                          Local analysis notes
+drift_component/                     Predictable-drift diagnostic component
+reports/generated_outputs/           Canonical stored replication outputs
+fts-diffusion-ref/                   Author/reference code and bundled artifacts
 ```
+
+`fts-diffusion-ref/` is kept as the reference tree. Avoid editing it when making workspace-level cleanup or local implementation changes.
 
 ## Environment
 
@@ -135,6 +140,16 @@ Each run writes:
 - `checkpoints/generator_final.pt`
 - `checkpoints/evolution_final.pt`
 
+## Replication Artifacts
+
+The canonical replication output tree is:
+
+```text
+reports/generated_outputs/
+```
+
+It contains numbered runs, a manifest, settings comparison files, the replication report, protocol diagnostics, and long-batch outputs. Older unnumbered report folders were duplicate copies of the numbered folders and have been removed to keep one source of truth.
+
 ## Paper Details Reflected In Config
 
 The appendix specifies the following defaults used in the paper and mirrored in the config:
@@ -181,9 +196,8 @@ Once your course dataset is ready:
    - `generation.epochs`
    - `sampling.temperature`
 
-## Limitations
+## Current Gaps
 
-- The repo does not include the paper's downstream forecasting evaluation yet.
-- No baseline implementations are included.
-- I could not run a full training smoke test in this environment because the workspace currently lacks PyTorch and related dependencies.
-
+- Baseline model implementations are not included as first-class local package modules.
+- Downstream replication scripts exist under `scripts/`, but several use the reference tree and stored checkpoints rather than the local package implementation.
+- The stored SISC artifacts currently cover SP500 in the reference tree; GOOG and ZCF still need fresh SISC artifacts if you want a complete asset-level replication archive.

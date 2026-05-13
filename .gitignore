@@ -1,2 +1,11 @@
+.DS_Store
+.pytest_cache/
+__pycache__/
+*.py[cod]
+
+/.venv/
+/.venv-ref/
+/outputs/
+/data/
+
 code_from_authors/
-*__pycache__/

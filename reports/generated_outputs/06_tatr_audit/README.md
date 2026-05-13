@@ -1,6 +1,6 @@
 # TATR Audit
 
-Audit of stored TATR outputs under `results/tatr` and the notebook runner in `src/TATR_Reduced_Replication.ipynb`.
+Audit of stored TATR outputs under `results/tatr` and the notebook runner in `notebooks/TATR_Reduced_Replication.ipynb`.
 
 ## Main Findings
 

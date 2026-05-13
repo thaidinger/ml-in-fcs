@@ -1,6 +1,8 @@
 # Generated Outputs
 
-Consolidated copies of the outputs generated during the S&P 500 TATR/TMTR replication work.
+Canonical outputs generated during the S&P 500 TATR/TMTR replication work.
+
+This is the single stored report tree. Older unnumbered folders directly under `reports/` were byte-for-byte duplicates of the numbered folders here and were removed.
 
 ## Folder Map
 

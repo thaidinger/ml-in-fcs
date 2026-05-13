@@ -81,7 +81,8 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--output", default=None)
     args = parser.parse_args()
-    out = ROOT / args.output if args.output else REPORTS / f"downstream_{args.datatype}_sp500"
+    default_out = REPORTS / "generated_outputs" / "05_sp500_prices_and_returns_sweeps" / f"downstream_{args.datatype}_sp500"
+    out = ROOT / args.output if args.output else default_out
 
     os.chdir(REF)
 

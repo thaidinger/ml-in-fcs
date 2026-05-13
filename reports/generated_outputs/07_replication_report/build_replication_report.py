@@ -11,8 +11,8 @@ import numpy as np
 import pandas as pd
 
 
-ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / "reports" / "replication_report"
+ROOT = Path(__file__).resolve().parents[3]
+OUT = Path(__file__).resolve().parent
 FIG = OUT / "figures"
 TAB = OUT / "tables"
 PAPER_K_CONFIGS = {

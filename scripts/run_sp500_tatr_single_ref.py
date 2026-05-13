@@ -132,7 +132,7 @@ def main() -> None:
     parser.add_argument("--hidden-dim", type=int, default=32)
     parser.add_argument("--loss", default="mae", choices=["mae", "mse"])
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--output", default="reports/tatr_prices_sp500_single")
+    parser.add_argument("--output", default="reports/generated_outputs/02_sp500_tatr_single_diagnostic")
     args = parser.parse_args()
 
     out = ROOT / args.output
