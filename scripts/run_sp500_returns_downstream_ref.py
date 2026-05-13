@@ -79,8 +79,9 @@ def main() -> None:
     parser.add_argument("--hidden-dim", type=int, default=32)
     parser.add_argument("--loss", default="mae", choices=["mae", "mse"])
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--output", default=None)
     args = parser.parse_args()
-    out = REPORTS / f"downstream_{args.datatype}_sp500"
+    out = ROOT / args.output if args.output else REPORTS / f"downstream_{args.datatype}_sp500"
 
     os.chdir(REF)
 

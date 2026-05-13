@@ -1,0 +1,73 @@
+{
+  "asset": "sp500",
+  "experiment": "TATR/TMTR",
+  "purpose": "multi-hour attempt to replicate author-like downstream results and isolate protocol sensitivity",
+  "settings": {
+    "budget_hours": 7.5,
+    "reserve_minutes": 10.0,
+    "seeds": [
+      42,
+      43,
+      44,
+      45,
+      46,
+      47
+    ],
+    "tatr_blocks": [
+      0,
+      10,
+      20,
+      30,
+      40,
+      50,
+      60,
+      70,
+      80,
+      90,
+      100
+    ],
+    "control_blocks": [
+      0,
+      20,
+      40,
+      60,
+      80,
+      100
+    ],
+    "tmtr_proportions": [
+      0,
+      10,
+      20,
+      30,
+      40,
+      50,
+      60,
+      70,
+      80,
+      90,
+      100
+    ],
+    "epochs": 100,
+    "aug_length": 252,
+    "mix_length": 1260,
+    "window_size": 64,
+    "ahead": 1,
+    "hidden_dim": 32,
+    "loss": "mae",
+    "stages": [
+      "tatr_continuous_chunked",
+      "tatr_independent_fixed",
+      "tatr_continuous_refit",
+      "tatr_continuous_chunked_5ahead",
+      "tmtr_reference",
+      "tmtr_continuous_offsets"
+    ],
+    "output": "reports/generated_outputs/11_long_replication_batch"
+  },
+  "started_at": "2026-05-13 02:16:53",
+  "used_stored_sisc_artifacts": true,
+  "used_stored_pgm_pem_checkpoints": true,
+  "finished_at": "2026-05-13 05:11:32",
+  "elapsed_seconds": 10478.319,
+  "stopped_reason": "completed requested stages"
+}

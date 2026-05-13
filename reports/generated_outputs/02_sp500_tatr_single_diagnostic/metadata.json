@@ -1,0 +1,43 @@
+{
+  "asset": "sp500",
+  "experiment": "TATR",
+  "protocol": "single_continuous_trajectory",
+  "datatype": "prices",
+  "output_dir": "reports/tatr_prices_sp500_single",
+  "used_stored_sisc_artifacts": true,
+  "used_stored_pgm_pem_checkpoints": true,
+  "attempted_runs": 5,
+  "completed_runs": 1,
+  "stopped_reason": "5-run sweep was too slow for the earlier 30-minute compute budget; stopped after one complete trajectory.",
+  "settings": {
+    "window_size": 64,
+    "ahead": 1,
+    "hidden_dim": 32,
+    "lstm_layers": 2,
+    "loss": "mae",
+    "n_epochs": 100,
+    "eval_blocks": [
+      0,
+      10,
+      20,
+      30,
+      40,
+      50,
+      60,
+      70,
+      80,
+      90,
+      100
+    ],
+    "aug_length": 252,
+    "optimizer": "Adam lr=1e-2 from reference predictor_lstm.py"
+  },
+  "protocol_change": "One continuous synthetic trajectory per run; each evaluation uses a longer prefix. This differs from the reference authors protocol of independent 252-day blocks.",
+  "best": {
+    "augmentation_blocks": 50.0,
+    "synthetic_days": 12600.0,
+    "avg": 0.0068487641401588,
+    "min": 0.0068487641401588,
+    "max": 0.0068487641401588
+  }
+}

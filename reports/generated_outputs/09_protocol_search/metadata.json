@@ -1,0 +1,26 @@
+{
+  "asset": "sp500",
+  "experiment": "TATR",
+  "purpose": "targeted search for protocol choices that reproduce the paper-like downward curve",
+  "settings": {
+    "eval_blocks": [
+      0,
+      10,
+      30,
+      50,
+      70,
+      100
+    ],
+    "epochs": 100,
+    "aug_length": 252,
+    "window_size": 64,
+    "ahead": 1,
+    "hidden_dim": 32,
+    "loss": "mae",
+    "seed": 42,
+    "protocols": "continuous_cross,continuous_chunked,independent_fixed,continuous_cross_refit_scaler",
+    "output": "reports/generated_outputs/09_protocol_search"
+  },
+  "elapsed_seconds": 1295.178,
+  "interpretation": "If continuous_chunked improves similarly to continuous_cross, the important change is continuous state/price-level drift rather than cross-boundary windows. If refit_scaler changes results, scaler choice is a sensitivity. independent_fixed is the released reference TATR structure."
+}
