@@ -1,36 +1,39 @@
 # Generated Outputs
 
-Canonical outputs generated during the S&P 500 TATR/TMTR replication work.
+This directory contains generated replication artifacts and diagnostics. It is organized by storyline so reviewers can quickly distinguish the S&P downstream replication work from the GOOG/ZCF real-asset SISC work and the Appendix B.3 simulated-data SISC investigation.
 
-This is the single stored report tree. Older unnumbered folders directly under `reports/` were byte-for-byte duplicates of the numbered folders here and were removed.
+## Navigation
 
-## Folder Map
+| Folder | Purpose | Read first |
+|---|---|---|
+| `01_sp500_downstream_replication/` | S&P 500 TMTR/TATR downstream replication, protocol diagnostics, and long-batch checks. | `01_sp500_downstream_replication/README.md` |
+| `02_goog_zcf_real_asset_sisc/` | GOOG and ZC=F real-asset SISC pattern-library artifacts and comparison notes. | `02_goog_zcf_real_asset_sisc/README.md` |
+| `03_appendix_b3_simulated_sisc/` | Appendix B.3 simulated-data SISC replication attempts and sweep results. | `03_appendix_b3_simulated_sisc/README.md` |
 
-- `01_sp500_paper_protocol_resource_aware`: final resource-aware one-day author-protocol TATR/TMTR run using stored S&P artifacts.
-- `02_sp500_tatr_single_diagnostic`: diagnostic TATR run with one continuous synthetic trajectory (`single` setting).
-- `03_sp500_tatr_author_style_1day`: one-day TATR-only author-style run.
-- `04_sp500_tatr_author_style_5day`: five-day TATR-only author-style run, corresponding to the appendix/page-21 horizon check.
-- `05_sp500_prices_and_returns_sweeps`: earlier reduced TATR/TMTR sweeps for prices and returns.
-- `06_tatr_audit`: audit plots/tables comparing stored TATR protocols and diagnosing synthetic price-level behavior.
-- `07_replication_report`: generated replication report, tables, figures, and build script.
-- `08_replicability_diagnostic`: final diagnostic deciding whether the authors' trend is reproducible from the released code/artifacts.
-- `09_protocol_search`: one-hour targeted search over plausible protocol variants; identifies continuous synthetic trajectory generation as the setting that reproduces the paper-like TATR drop.
-- `10_protocol_multiseed`: two-complete-seed robustness check confirming continuous protocols improve while independent fixed blocks worsen.
-- `11_long_replication_batch`: six-seed long batch showing continuous TATR robustly reproduces the paper-like drop while independent-block TATR fails; includes 1-day, 5-day, and TMTR checks.
+Top-level files:
 
-`MANIFEST.txt` lists every file copied into this consolidated folder.
+- `EXPERIMENT_REGISTRY.md`: duplicate-run guard with settings keys for each completed experiment.
+- `experiment_registry.csv`: machine-readable version of the experiment registry.
+- `SETTINGS_COMPARISON.md`: original settings comparison for the S&P 500 downstream experiments.
+- `settings_summary.csv`: machine-readable version of the settings comparison.
+- `MANIFEST.txt`: grouped inventory of the retained output folders.
 
-## Settings
+Before launching a new experiment, check `EXPERIMENT_REGISTRY.md`. If the proposed settings match an existing `Settings key`, treat it as already run unless the code, data, or evaluation metric has changed.
 
-- `SETTINGS_COMPARISON.md`: human-readable comparison table with run settings, protocol differences, and headline results.
-- `settings_summary.csv`: machine-readable summary of the same comparison.
+## Headline Results
 
-## Key Results
+### S&P 500 Downstream Replication
 
-- The faithful author-style S&P one-day run did not reproduce a sustained downward TATR trend.
-- The `single` continuous-trajectory diagnostic did show a strong MAPE drop, but that protocol differs from the released author reference code.
-- The audit artifacts support a protocol/generator mismatch: independent synthetic blocks stay near the initial price level, while a continuous trajectory drifts across the test-period scale.
-- The final diagnostic verdict is: not replicable with the released reference code and stored S&P artifacts under the tested author-style protocols.
-- The protocol search shows the qualitative paper trend is reproducible with continuous synthetic trajectories, but not with the released independent-block TATR protocol.
-- The multi-seed robustness run confirms the same contrast across seeds `42` and `43`.
-- The long batch expands this to seeds `42..47`: continuous TATR best MAPE averages around `0.009`, while independent-block TATR ends far worse than baseline.
+The released author-style protocol using stored S&P artifacts did not reproduce a sustained downward TATR trend. A continuous synthetic trajectory protocol can reproduce a paper-like drop, but that differs from the released reference-code independent-block TATR protocol. The long-batch run supports the same conclusion across seeds.
+
+### GOOG and ZC=F Real-Asset SISC
+
+GOOG and corn futures (`ZC=F`) SISC pattern libraries were generated with `K=11` and plotted. These real-asset pattern libraries cannot be scored against the paper's Appendix B.3 metrics because real market data has no ground-truth pattern labels or segment boundaries.
+
+### Appendix B.3 Simulated SISC
+
+The B.3-specific simulated-data replication attempts did not reproduce the paper's reported values. The best sweep result reached average per-unit DTW `0.0321` versus the paper's `0.01`; the best author-style interval IoU reached `0.6418` versus the paper's `0.784`.
+
+## Hygiene
+
+Author/reference source code remains outside this generated-output tree. OS metadata files such as `.DS_Store` were removed from this directory before regrouping.

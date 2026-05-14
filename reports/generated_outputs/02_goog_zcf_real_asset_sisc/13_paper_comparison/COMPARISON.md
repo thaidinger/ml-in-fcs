@@ -24,7 +24,7 @@ The new local runs match the paper's reported real-data setup for the two assets
 | GOOG | 3,775 | 11 | 258 | 259 | `fts-diffusion-ref/res/sisc_goog_k11_l10-21_dba_kmpp_*` |
 | ZC=F | 4,763 | 11 | 321 | 322 | `fts-diffusion-ref/res/sisc_zcf_k11_l10-21_dba_kmpp_*` |
 
-Pattern-library plots are stored in `reports/generated_outputs/12_sisc_pattern_library/`.
+Pattern-library plots are stored in `reports/generated_outputs/02_goog_zcf_real_asset_sisc/12_sisc_pattern_library/`.
 
 ### Architecture Checkpoints
 

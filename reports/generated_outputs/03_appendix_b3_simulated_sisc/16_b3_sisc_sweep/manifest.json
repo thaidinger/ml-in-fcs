@@ -1,6 +1,6 @@
 {
-  "output": "/Users/ericshao/Documents/GitHub/ml-in-fcs/reports/generated_outputs/16_b3_sisc_sweep",
-  "results": "/Users/ericshao/Documents/GitHub/ml-in-fcs/reports/generated_outputs/16_b3_sisc_sweep/sweep_results.csv",
+  "output": "/Users/ericshao/Documents/GitHub/ml-in-fcs/reports/generated_outputs/03_appendix_b3_simulated_sisc/16_b3_sisc_sweep",
+  "results": "/Users/ericshao/Documents/GitHub/ml-in-fcs/reports/generated_outputs/03_appendix_b3_simulated_sisc/16_b3_sisc_sweep/sweep_results.csv",
   "completed_successful_runs": 18,
   "attempted_rows": 18,
   "paper_multi_pattern": {

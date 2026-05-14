@@ -62,7 +62,7 @@
       "tmtr_reference",
       "tmtr_continuous_offsets"
     ],
-    "output": "reports/generated_outputs/11_long_replication_batch"
+    "output": "reports/generated_outputs/01_sp500_downstream_replication/11_long_replication_batch"
   },
   "started_at": "2026-05-13 02:16:53",
   "used_stored_sisc_artifacts": true,
