@@ -1,0 +1,131 @@
+\section{Generation module (PGM)}
+
+\begin{frame}{Step 2: pattern generation}
+\framesubtitle{How does diffusion know what to generate? Conditioning happens in latent space.}
+\vspace{-2mm}
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+  font=\small,
+  node distance=4mm,
+  mod/.style={rectangle,rounded corners=2pt,draw=NavyBlue,thick,
+              fill=NavyBlue!7,minimum width=2.7cm,minimum height=1.1cm,align=center},
+  io/.style ={rectangle,draw=GraySoft,fill=Sand,thin,
+              minimum width=2.4cm,minimum height=0.85cm,align=center,font=\footnotesize},
+  diff/.style={rectangle,rounded corners=2pt,draw=Coral,line width=1pt,
+               fill=Coral!10,minimum width=3.0cm,minimum height=1.1cm,align=center},
+  arr/.style={-{Latex[length=2.4mm]},thick,NavyDeep}]
+
+  \node[io]                  (seg)   {variable-length\\segment $x_m$};
+  \node[mod, right=of seg]   (enc)   {\textbf{Encoder} (SAE)};
+  \node[io,  right=of enc]   (z)     {fixed-dim\\latent $z$};
+  \node[diff,right=of z]     (den)   {\textbf{Denoising network}\\$\epsilon_\theta(\cdot,\,p)$};
+  \node[io,  right=of den]   (zp)    {new latent\\$z'$};
+  \node[mod, right=of zp]    (dec)   {\textbf{Decoder} (SAE)};
+  \node[io,  right=of dec]   (out)   {synthetic\\segment $\hat{x}_m$};
+
+  \draw[arr] (seg) -- (enc);
+  \draw[arr] (enc) -- (z);
+  \draw[arr] (z)   -- (den);
+  \draw[arr] (den) -- (zp);
+  \draw[arr] (zp)  -- (dec);
+  \draw[arr] (dec) -- (out);
+
+  \node[below=2mm of den,font=\scriptsize,Coral,align=center]
+        {conditional diffusion\\\scriptsize\itshape conditioned on pattern $p$ (from SISC)};
+\end{tikzpicture}}
+
+\vspace{1mm}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.55\textwidth}\scriptsize
+\textbf{Conditional forward step (paper \S4.2):}
+\[ q(x^{i}\mid x^{i-1}) = \mathcal{N}\!\bigl(x^{i};\;\sqrt{1-\beta}\,(x^{i-1}-p),\;\beta I\bigr). \]
+Noise is added to the residual $(z-p)$, so the denoiser learns to produce segments resembling the centroid of pattern $p$, not arbitrary signals.
+\end{column}
+\begin{column}{0.43\textwidth}\scriptsize
+\begin{itemize}\setlength\itemsep{1pt}\setlength\topsep{0pt}
+  \item SAE encoder maps variable-length $\to$ fixed-dim latent.
+  \item Diffusion runs in the latent, conditioned on $p$.
+  \item SAE decoder maps the new latent back to a segment.
+  \item \alert{Coherent pattern evolution} prevents learning pure noise.
+\end{itemize}
+\end{column}
+\end{columns}
+\note{The generation sub-pipeline mirrors the architecture overview style. The denoising trajectory is steered by the pattern identity $p$ extracted by SISC; conditioning happens in the latent space, not on the raw segment.}
+\end{frame}
+
+\begin{frame}{Scaling autoencoder}
+\framesubtitle{From variable-length segments to fixed latent representations}
+\begin{columns}[onlytextwidth]
+\begin{column}{0.5\textwidth}
+\begin{alertblock}{Encoder}
+Maps an observed variable-length segment to a fixed latent:
+\[ x_m \;\longrightarrow\; x'_m. \]
+\end{alertblock}
+\end{column}
+\begin{column}{0.5\textwidth}
+\begin{alertblock}{Decoder}
+Reconstructs a financial segment from the latent:
+\[ x'_m \;\longrightarrow\; \hat{x}_m. \]
+\end{alertblock}
+\end{column}
+\end{columns}
+
+\medskip
+\begin{itemize}\setlength\itemsep{1pt}
+  \item Handles heterogeneous segment lengths.
+  \item Makes diffusion feasible in a fixed-dimensional latent space.
+  \item Implemented with LSTM / GRU layers.
+\end{itemize}
+\note{Variable-length input is the main complication: a vanilla diffusion model cannot operate on segments of different lengths, hence the autoencoder.}
+\end{frame}
+
+\begin{frame}{Pattern-conditioned diffusion network}
+\framesubtitle{Learning to denoise latent pattern representations}
+\begin{block}{Forward diffusion}
+Gradually corrupt the latent with Gaussian noise:
+\[ q(x^i \mid x^{i-1}) = \mathcal{N}\!\bigl(x^i;\;\sqrt{1-\beta}(x^{i-1}-p),\;\beta I\bigr). \]
+\end{block}
+\begin{alertblock}{Reverse denoising}
+A network learns to recover the previous step, conditional on pattern $p$:
+\[ p_{\theta}(x^{i-1} \mid x^i) = \mathcal{N}\!\bigl(x^{i-1};\;\mu_{\theta}(x^i,i,p),\;\beta I\bigr). \]
+\end{alertblock}
+\begin{block}{Intuition}
+Map noise to realistic pattern-level market segments.
+\end{block}
+\note{The pattern identity $p$ enters as a conditioning variable in both the forward shift and the reverse mean network.}
+\end{frame}
+
+\begin{frame}{Training loss: three losses, asymmetric weights}
+\framesubtitle{Concrete weights from \texttt{pgm\_params} (\texttt{model\_params.py:32-53})}
+\begin{block}{Composite objective}
+\[
+\mathcal{L}_{\text{total}}
+\;=\;
+\underbrace{\lambda_{\text{SAE}}}_{=\,0.98}\,\mathcal{L}_{\text{recon}}
+\;+\;
+\underbrace{\lambda_{\text{diff}}}_{=\,0.01}\,\mathcal{L}_{\text{diff}}
+\;+\;
+\underbrace{\lambda_{\text{scale}}}_{=\,0.01}\,\mathcal{L}_{\text{SoftDTW}}.
+\]
+\centering\scriptsize \texttt{pad\_weight}$=1$ \quad (padding weighted equally with data) \quad $|$ \quad \texttt{reduction}$=$\texttt{'sum'} (MSE summed, not averaged).
+\end{block}
+
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.62\textwidth}\scriptsize
+\textbf{Commentary}
+\begin{itemize}\setlength\itemsep{0pt}\setlength\topsep{0pt}
+  \item Three losses summed: SAE reconstruction (price space), PCDM diffusion (latent noise residual), SoftDTW$(x,z)$ (latent interpretability).
+  \item The $0.98:0.01$ ratio is \alert{98:1}. The gradient is tilted toward reconstruction; diffusion receives $<1\%$ of the signal, by design.
+  \item \texttt{mse(reduction='sum')} $+$ \texttt{pad\_weight}$=1$: the SAE spends a large fraction of its gradient budget on padding zeros, which directly caps how much the diffusion can learn.
+\end{itemize}
+\end{column}
+\begin{column}{0.36\textwidth}\scriptsize
+\begin{alertblock}{Open question}
+Would raising $\lambda_{\text{diff}}$ (e.g.\ $0.1$) and zeroing \texttt{pad\_weight} improve downstream MAPE?
+\textit{Hypothesis:} an un-suppressed diffusion produces sharper latent centroids, hence more stable MC transitions, the weak link the PEM feeds into TATR.
+\end{alertblock}
+\end{column}
+\end{columns}
+\note{Values verified in \texttt{fts-diffusion-ref/models/model\_params.py} and \texttt{pattern\_generation\_module.py:151-160}. The SoftDTW term is a latent-space regulariser meant to keep the encoder/decoder interpretable, not to drive sample quality; it shares the diffusion's weight scale. The asymmetric ratio is the load-bearing modelling choice we want to flag.}
+\end{frame}

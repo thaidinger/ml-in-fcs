@@ -1,0 +1,212 @@
+\section{Evolution module (PEM)}
+
+\begin{frame}{Step 3: pattern evolution}
+\framesubtitle{Markets evolve through regimes; PEM learns the empirical transition kernel}
+\vspace{-2mm}
+{\scriptsize\itshape Markets evolve through regimes (bull/bear, low-vol/high-vol). The PEM learns the empirical transition kernel between the latent regimes that SISC discovered.}
+
+\medskip
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.52\textwidth}\footnotesize
+\textbf{What the PEM does}
+\begin{enumerate}\setlength\itemsep{1pt}\setlength\topsep{0pt}
+  \item Governs the \alert{temporal structure} of the synthetic series.
+  \item Assumes Markov dynamics: $S_{m+1}\sim Q(\cdot\mid S_m)$.
+  \item \alert{Sensitive to the rollout protocol} (headline of the next slides).
+  \item Iterated \alert{autoregressively} at sampling time: MAPE worsens as more synthetic data is fed in, errors compound.
+  \item \alert{Low-dimensional}: collapses each segment to $(p_m,\alpha_m,\beta_m)$.
+\end{enumerate}
+\end{column}
+\begin{column}{0.46\textwidth}
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[font=\tiny,
+  rst/.style={circle,draw=Coral,fill=Coral!25,minimum size=2.0mm,inner sep=0pt},
+  nd/.style ={circle,draw=NavyBlue,fill=NavyBlue!10,minimum size=2.0mm,inner sep=0pt},
+  arr/.style={-{Latex[length=1.4mm]},thin,NavyBlue}]
+  \node[anchor=west,font=\scriptsize\bfseries,NavyBlue] at (0,2.2) {authors (reset)};
+  \foreach \b/\x in {1/0.0, 2/2.0, 3/4.0}{
+    \node[rst]              at (\x,1.6) {};
+    \node[nd] (a\b)         at (\x+0.5,1.6) {};
+    \node[nd] (b\b)         at (\x+1.0,1.6) {};
+    \node[nd] (c\b)         at (\x+1.5,1.6) {};
+    \draw[arr] (\x+0.05,1.6) -- (a\b);
+    \draw[arr] (a\b) -- (b\b);
+    \draw[arr] (b\b) -- (c\b);
+  }
+  \node[anchor=west,font=\tiny,GraySoft] at (0,1.15) {[reset] $\to$ chain $\to$ [reset] $\to$ chain $\dots$};
+
+  \node[anchor=west,font=\scriptsize\bfseries,NavyBlue] at (0,0.6) {ours (split)};
+  \node[rst] (s0) at (0.0,0.0) {};
+  \foreach \i in {1,...,9}{
+     \pgfmathsetmacro{\xx}{0.6*\i}
+     \node[nd] (n\i) at (\xx,0.0) {};
+  }
+  \foreach \a/\b in {s0/n1, n1/n2, n2/n3, n3/n4, n4/n5, n5/n6, n6/n7, n7/n8, n8/n9}{
+     \draw[arr] (\a) -- (\b);
+  }
+  \foreach \i in {2,4,6,8}{
+     \pgfmathsetmacro{\xx}{0.6*\i-0.3}
+     \draw[GraySoft!70,dashed,thin] (\xx,0.4) -- (\xx,-0.4);
+  }
+  \node[anchor=west,font=\tiny,GraySoft] at (0,-0.7) {[start] $\to$ continuous chain $\to$ sliced into blocks};
+\end{tikzpicture}}
+\end{column}
+\end{columns}
+
+\medskip
+{\scriptsize Authors \alert{reset} the chain at the start of every downstream block. We let the chain \alert{evolve continuously} and slice it. This subtle choice flips the result for S\&P 500 (we'll see how in the results section).}
+\note{The state is augmented by scaling factors, so the transition kernel can model not just which pattern follows which, but also how the next instance scales in time and magnitude. Reset vs split is the central methodological point of the talk; the comparison is forward-referenced but not spoiled.}
+\end{frame}
+
+\begin{frame}{Pattern evolution network}
+\framesubtitle{Classification for patterns, regression for scales}
+\begin{block}{Transition network}
+\[ (\hat{p}_{m+1},\hat{\alpha}_{m+1},\hat{\beta}_{m+1}) = \phi(p_m,\alpha_m,\beta_m). \]
+\end{block}
+
+\begin{columns}[onlytextwidth]
+\begin{column}{0.48\textwidth}
+\begin{alertblock}{Outputs}
+\begin{itemize}
+  \item next pattern $p_{m+1}$;
+  \item next duration scale $\alpha_{m+1}$;
+  \item next magnitude scale $\beta_{m+1}$.
+\end{itemize}
+\end{alertblock}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{alertblock}{Learning tasks}
+\begin{itemize}
+  \item pattern: classification;
+  \item duration: regression;
+  \item magnitude: regression.
+\end{itemize}
+\end{alertblock}
+\end{column}
+\end{columns}
+
+\medskip
+\[ \mathcal{L}(\phi)
+=
+\mathbb{E}_{x_m}\!\bigl[
+\ell_{CE}(p_{m+1},\hat{p}_{m+1})
++\|\alpha_{m+1}-\hat{\alpha}_{m+1}\|_2^2
++\|\beta_{m+1}-\hat{\beta}_{m+1}\|_2^2\bigr]. \]
+\note{Three-headed network: one classification head and two regression heads, trained jointly. In our implementation the transition network is an LSTM.}
+\end{frame}
+
+\begin{frame}{Generation: the PEM directs, two modules execute}
+\framesubtitle{At sampling time only PEM, the diffusion model and the decoder run --- SISC is gone}
+\vspace{2mm}
+\centering
+\resizebox{0.99\textwidth}{!}{%
+\begin{tikzpicture}[font=\small,
+   mod/.style={rectangle,rounded corners=2pt,draw=NavyBlue,thick,fill=NavyBlue!7,
+               minimum width=2.7cm,minimum height=1.3cm,align=center,text=NavyDeep},
+   dir/.style={rectangle,rounded corners=2pt,draw=Coral,line width=1.6pt,fill=Coral!12,
+               minimum width=2.7cm,minimum height=1.3cm,align=center,text=NavyDeep},
+   op/.style ={rectangle,rounded corners=2pt,draw=TealAcc,thick,fill=TealAcc!10,
+               minimum width=2.7cm,minimum height=1.3cm,align=center,text=NavyDeep},
+   arr/.style={-{Latex[length=2.6mm]},line width=1pt,NavyDeep}]
+
+  \node[dir] (pem) at (0,0)    {\textbf{PEM}\\\footnotesize the \emph{director}};
+  \node[mod] (dif) at (4.6,0)  {\textbf{Denoising}\\\textbf{diffusion}};
+  \node[mod] (dec) at (9.2,0)  {\textbf{Decoder}\\\textbf{(LSTM)}};
+  \node[op]  (sca) at (13.8,0) {$\times\,\beta$\\\textbf{$+$ anchor}};
+
+  \draw[arr] (pem) -- node[above,font=\scriptsize,Coral]{$(p,\alpha,\beta)$} (dif);
+  \draw[arr] (dif) -- node[above,font=\scriptsize,NavyBlue]{pattern shape} (dec);
+  \draw[arr] (dec) -- node[above,font=\scriptsize,NavyBlue]{raw segment} (sca);
+  \draw[arr] (sca) -- ++(2.6,0) coordinate(out) node[midway,above,font=\scriptsize]{append};
+
+  \draw[arr,Coral,dashed,line width=1pt]
+        (out) .. controls ++(0,3.0) and ++(0,3.0) .. (pem.north);
+  \node[font=\scriptsize,Coral,fill=white,inner sep=2pt] at (8.8,2.65)
+        {autoregressive --- repeat per segment until the path is long enough};
+
+  \node[font=\scriptsize,Coral,align=center,text width=3.0cm]    at (4.6,-1.35) {conditioned on $p$ only};
+  \node[font=\scriptsize,NavyBlue,align=center,text width=3.0cm] at (9.2,-1.35) {$\alpha$ truncates the unrolling};
+  \node[font=\scriptsize,TealAcc,align=center,text width=3.0cm]  at (13.8,-1.35){$\beta$ scales \& glues, outside the net};
+
+  \node[anchor=west,font=\scriptsize\bfseries,NavyBlue] at (0,-2.35) {synthetic series so far:};
+  \node[anchor=west,font=\scriptsize,Coral] at (11.4,-2.35) {newest segment};
+  \draw[NavyDeep,line width=1.1pt,line cap=round] plot[smooth] coordinates
+     {(0,-3.2) (0.65,-2.9) (1.3,-3.3) (1.95,-2.95) (2.6,-3.25) (3.25,-2.8)
+      (3.9,-3.15) (4.55,-2.85) (5.2,-3.2) (5.85,-2.9) (6.5,-3.25) (7.15,-3.0)
+      (7.8,-3.3) (8.45,-2.95) (9.1,-3.2) (9.75,-2.9) (10.4,-3.25) (11.0,-3.05)};
+  \draw[Coral,line width=1.7pt,line cap=round] plot[smooth] coordinates
+     {(11.0,-3.05) (11.6,-2.5) (12.2,-3.0) (12.8,-2.5) (13.4,-3.05)};
+  \draw[GraySoft,dashed,line width=1pt] (13.4,-3.05) -- (15.8,-3.05);
+\end{tikzpicture}}
+\note{Visual version of the sampling loop. The PEM is the \emph{director}: it rolls the Markov chain of states and, for each segment, hands $(p,\alpha,\beta)$ to the two execution modules. Diffusion renders the pattern shape, the decoder turns it into a variable-length segment, and a $\beta$-scaling step outside the networks glues it to the series. SISC and the encoder are not used at sampling --- the pattern dictionary is already fixed. The loop is autoregressive, so errors compound as the path grows (the headline of the TATR results).}
+\end{frame}
+
+\begin{frame}{One segment: three different roles for $(p,\alpha,\beta)$}
+\vspace{1mm}
+\centering
+\resizebox{0.99\textwidth}{!}{%
+\begin{tikzpicture}[font=\small,
+   mod/.style ={rectangle,rounded corners=2pt,draw=NavyBlue,thick,fill=NavyBlue!7,
+                minimum width=2.4cm,minimum height=1.4cm,align=center,text=NavyDeep},
+   opn/.style ={rectangle,rounded corners=2pt,draw=TealAcc,thick,fill=TealAcc!10,
+                minimum width=2.4cm,minimum height=1.4cm,align=center,text=NavyDeep},
+   gl/.style  ={rectangle,draw=GraySoft!55,fill=GraySoft!7,minimum height=1.4cm},
+   chip/.style={circle,minimum size=0.95cm,align=center,font=\bfseries,
+                inner sep=0pt,line width=1.3pt},
+   arr/.style ={-{Latex[length=2.2mm]},line width=0.9pt,NavyDeep}]
+
+  % --- the next state, emitted by PEM ---
+  \node[font=\scriptsize\itshape,GraySoft] at (7.2,3.7)
+       {the next state, emitted by the PEM director};
+  \node[chip,draw=Coral,fill=Coral!18,text=Coral]        (cp) at (1.7,3.0) {$p$};
+  \node[chip,draw=NavyBlue,fill=NavyBlue!14,text=NavyBlue](ca) at (6.3,3.0) {$\alpha$};
+  \node[chip,draw=TealAcc,fill=TealAcc!16,text=TealAcc]   (cb) at (11.0,3.0) {$\beta$};
+
+  % --- pipeline: operation -- data -- operation -- data -- operation -- data ---
+  \node[mod] (dif) at (1.7,1.0) {\textbf{Denoising}\\\textbf{diffusion}};
+  \node[gl,minimum width=1.7cm]  (gL) at (4.0,1.0) {};
+  \node[mod] (dec) at (6.3,1.0) {\textbf{Decoder}\\\textbf{LSTM}};
+  \node[gl,minimum width=1.7cm]  (gS) at (8.6,1.0) {};
+  \node[opn] (sca) at (11.0,1.0) {$\times\,\beta$\\\textbf{$+$ anchor}};
+  \node[gl,minimum width=2.3cm]  (gF) at (13.9,1.0) {};
+
+  \draw[arr,Coral,line width=1.3pt]    (cp) -- (dif);
+  \draw[arr,NavyBlue,line width=1.3pt] (ca) -- (dec);
+  \draw[arr,TealAcc,line width=1.3pt]  (cb) -- (sca);
+  \draw[arr] (dif) -- (gL);
+  \draw[arr] (gL)  -- (dec);
+  \draw[arr] (dec) -- (gS);
+  \draw[arr] (gS)  -- (sca);
+  \draw[arr] (sca) -- (gF);
+
+  % glyph L: unit-magnitude latent, full length 21
+  \draw[NavyBlue,line width=1pt,line cap=round] plot[smooth] coordinates
+     {(3.30,1.0)(3.50,1.45)(3.70,0.7)(3.90,1.4)(4.10,0.65)(4.30,1.35)(4.50,0.75)(4.70,1.05)};
+  \node[font=\tiny,NavyDeep,align=center] at (4.0,0.05) {unit magnitude,\\length $21$};
+  % glyph S: unit-magnitude segment truncated to length alpha
+  \draw[NavyBlue,line width=1pt,line cap=round] plot[smooth] coordinates
+     {(7.95,1.0)(8.13,1.4)(8.31,0.72)(8.49,1.32)(8.67,0.78)};
+  \draw[GraySoft!55,dashed,line width=0.7pt] (8.78,0.45) -- (8.78,1.55);
+  \node[font=\tiny,NavyDeep,align=center] at (8.6,0.05) {length $\alpha$\\(rollout cut)};
+  % glyph F: previous-segment tail (gray) + new segment scaled by beta, anchored
+  \draw[GraySoft,line width=1pt,line cap=round] plot[smooth] coordinates
+     {(13.0,0.95)(13.2,1.15)(13.45,0.9)};
+  \draw[Coral,line width=1.3pt,line cap=round] plot[smooth] coordinates
+     {(13.45,0.9)(13.7,1.5)(13.95,0.55)(14.2,1.45)(14.45,0.62)(14.7,0.95)};
+  \node[font=\tiny,GraySoft] at (13.15,0.55) {prev.};
+  \node[font=\tiny,NavyDeep,align=center] at (14.15,0.05) {scaled by $\beta$,\\anchored};
+
+  % --- three colour-coded callouts ---
+  \node[rectangle,rounded corners=2pt,draw=Coral,fill=Coral!8,text=NavyDeep,
+        align=left,text width=4.0cm,font=\scriptsize,inner sep=5pt] at (2.4,-1.85)
+       {\textbf{\textcolor{Coral}{$p$ --- conditioning}}\\The diffusion model is conditioned \emph{only} on the pattern $p$. It denoises a fixed-length, unit-magnitude latent; $\alpha,\beta$ never enter it.};
+  \node[rectangle,rounded corners=2pt,draw=NavyBlue,fill=NavyBlue!6,text=NavyDeep,
+        align=left,text width=4.0cm,font=\scriptsize,inner sep=5pt] at (7.5,-1.85)
+       {\textbf{\textcolor{NavyBlue}{$\alpha$ --- truncation}}\\$\alpha$ sets how many steps the decoder LSTM unrolls: it \emph{truncates} the rollout to a segment of length $\alpha$.};
+  \node[rectangle,rounded corners=2pt,draw=TealAcc,fill=TealAcc!8,text=NavyDeep,
+        align=left,text width=4.0cm,font=\scriptsize,inner sep=5pt] at (12.6,-1.85)
+       {\textbf{\textcolor{TealAcc}{$\beta$ --- scale \& anchor}}\\Applied \emph{outside} the networks: multiply the segment by $\beta$, then shift it to start at the previous segment's last value.};
+\end{tikzpicture}}
+\note{The teaching slide of the section. The state $(p,\alpha,\beta)$ from the PEM is consumed in three structurally different ways. (1)~$p$ is the \emph{only} conditioning signal of the diffusion network --- contrary to eq.~3 of the paper, $\beta$ does not enter the corruption process in the released code; the diffusion always works on unit-magnitude latents. (2)~$\alpha$ is not a feature: it is the number of steps the decoder LSTM is unrolled, i.e.\ it truncates the rollout to length $\alpha$. (3)~$\beta$ is applied entirely outside the neural networks --- a scalar multiply followed by the vertical anchoring that glues the segment to the previously generated one. Three parameters, three distinct mechanisms, only one of which is inside a network conditioning path.}
+\end{frame}

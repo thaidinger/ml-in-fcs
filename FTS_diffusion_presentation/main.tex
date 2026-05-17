@@ -1,0 +1,70 @@
+\documentclass[11pt,aspectratio=169]{beamer}
+
+\title[FTS-Diffusion]{FTS-Diffusion:\\Generative Learning for Financial Time Series}
+\subtitle{Irregular and Scale-Invariant Patterns}
+\date[18.05.2026]{Machine Learning in Finance and Complex Systems\\18 May 2026}
+\author{Deli Lin \and Eric Shao \and Lapo Linossi \and Tom Haidinger}
+\institute{ETH Zurich\\Supervisor: Alexander Arandjelovic}
+
+\usetheme{eth}
+\colorlet{titlefgcolor}{ETHBlue}
+\colorlet{accentcolor}{ETHRed}
+
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\graphicspath{{../}}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,decorations.pathreplacing,fadings,shapes.geometric,shapes.misc,patterns,backgrounds,fit}
+\usepackage{booktabs}
+\usepackage{array}
+
+\definecolor{NavyBlue}{RGB}{15,40,82}
+\definecolor{NavyDeep}{RGB}{8,22,55}
+\definecolor{TealAcc}{RGB}{0,138,140}
+\definecolor{TealSoft}{RGB}{100,180,182}
+\definecolor{Sand}{RGB}{240,235,222}
+\definecolor{Coral}{RGB}{220,90,70}
+\definecolor{GraySoft}{RGB}{120,120,128}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\N}{\mathcal{N}}
+\DeclareMathOperator{\dtw}{DTW}
+\DeclareMathOperator{\Unif}{Uniform}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\newcommand{\lmax}{l_{\max}}
+\newcommand{\lmin}{l_{\min}}
+
+\usepackage{multicol}
+
+\AtBeginSection[]{%
+  \begin{frame}
+    \frametitle{Outline}
+    \footnotesize
+    \begin{multicols}{2}
+      \tableofcontents[currentsection]
+    \end{multicols}
+  \end{frame}
+}
+
+\begin{document}
+
+\setlength{\titleboxwidth}{0.85\textwidth}
+
+\input{sections/00_title}
+\input{sections/01_motivation}
+\input{sections/02_architecture_overview}
+\input{sections/03_sisc}
+\input{sections/04_generation_module}
+\input{sections/05_evolution_module}
+\input{sections/06_data_and_training}
+\input{sections/07a_tatr_explainer}
+\input{sections/07_tatr_protocols}
+\input{sections/07c_tmtr_explainer}
+\input{sections/08_results_sisc}
+\input{sections/09_results_tatr}
+\input{sections/10_results_extra}
+\input{sections/11_limitations_extensions}
+\input{sections/12_conclusions}
+
+\end{document}

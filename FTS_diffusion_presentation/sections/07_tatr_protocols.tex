@@ -1,0 +1,256 @@
+\section{TATR: synthetic-data protocols}
+
+% ===================================================================
+% Shared building blocks (the "filo conduttore")
+% ===================================================================
+% Constant banner: the message stressed verbally on every slide.
+\newcommand{\databanner}{%
+  \begin{center}\vspace{-1.5mm}
+  \colorbox{NavyBlue!9}{%
+    \parbox{0.94\textwidth}{\centering\footnotesize
+      \textbf{\color{NavyBlue}Same data budget.}\;
+      Every protocol hands the LSTM \emph{exactly} the same
+      $Y\times189$ context windows --- only the Markov-chain rollout differs.}}%
+  \end{center}}
+
+% One line of the recurring thread strip.
+% #1 = this line's index, #2 = how many lines are "evident",
+% #3 = accent colour, #4 = protocol name, #5 = description.
+\newcommand{\threadrow}[5]{%
+  \ifnum#1>#2\relax
+    {\color{GraySoft!38}$\bullet$~\texttt{\textbf{#4}}\,---\,#5}%
+  \else
+    {\color{#3}$\bullet$~\texttt{\textbf{#4}}}~---~#5%
+  \fi\par\smallskip}
+
+% The thread strip itself. #1 = number of evident lines (0..3).
+\newcommand{\threadstrip}[1]{%
+  \begin{center}\vspace{-0.5mm}
+  \begin{minipage}{0.94\textwidth}\footnotesize
+  \threadrow{1}{#1}{NavyBlue}{authors}%
+    {MC \emph{restarts every year} from the \emph{same} state $(p_0,l_0,m_0)$.}
+  \threadrow{2}{#1}{Coral}{split}%
+    {MC runs \emph{once, continuously}; year edges are only LSTM-window cuts.}
+  \threadrow{3}{#1}{TealAcc}{random\_init}%
+    {MC restarts every year from a \emph{random} state $\sim$\,\texttt{SEGMENTS\_INIT}.}
+  \end{minipage}
+  \end{center}}
+
+% ===================================================================
+% Slide 1 -- the shared pipeline: synthetic days -> LSTM windows
+% ===================================================================
+\begin{frame}{From synthetic days to LSTM training windows}
+\framesubtitle{Identical for every protocol --- establish it once}
+\vspace{-1mm}
+
+\centering
+\resizebox{0.93\textwidth}{!}{%
+\begin{tikzpicture}[font=\footnotesize,
+  bar/.style={rectangle,draw=NavyBlue,thick,fill=NavyBlue!8,minimum height=8mm},
+  win/.style={rectangle,draw=Coral,thick,minimum height=12mm},
+  arr/.style={-{Latex[length=2.2mm]},thick,NavyDeep},
+  box/.style={rectangle,rounded corners=2pt,thick,align=center,text=NavyDeep}]
+
+  % --- one synthetic year = 252 days ---
+  \node[bar,minimum width=12cm] (yr) at (6,4) {};
+  \node[anchor=south,NavyBlue,font=\scriptsize] at (6,4.5)
+        {one synthetic year $=252$ days};
+
+  % --- three sample positions of the length-64 window ---
+  \node[win,minimum width=1.7cm,fill=Coral!18] at (0.85,4) {};
+  \node[win,minimum width=1.7cm,fill=Coral!8,dashed] at (6,4) {};
+  \node[win,minimum width=1.7cm,fill=Coral!18] at (11.15,4) {};
+  \node[Coral,font=\tiny,anchor=north] at (0.85,3.3) {days 1--64};
+  \node[Coral,font=\tiny,anchor=north] at (6,3.3) {$\cdots$ window slides $\cdots$};
+  \node[Coral,font=\tiny,anchor=north] at (11.15,3.3) {days 189--252};
+
+  % --- brace: number of windows ---
+  \draw[decorate,decoration={brace,amplitude=4pt,mirror},GraySoft]
+        (0,2.7) -- (12,2.7);
+  \node[GraySoft,font=\scriptsize] at (6,2.25)
+        {length-64 window, 1-day-ahead $\;\Rightarrow\;252-63=\mathbf{189}$ context windows};
+
+  \draw[arr] (6,1.95) -- (6,1.45);
+
+  % --- pooled windows for one year ---
+  \node[box,draw=Coral,fill=Coral!12,minimum width=3.8cm,minimum height=1.1cm]
+        (stack) at (6,0.85) {\textbf{189} context windows / year\\
+        \scriptsize 63 days in $\to$ predict day 64};
+
+  % --- times Y -> LSTM training set ---
+  \draw[arr] (stack.east) -- ++(1.5,0)
+        node[midway,above,NavyDeep,font=\scriptsize]{$\times\,Y$ years};
+  \node[box,draw=NavyBlue,fill=NavyBlue!10,minimum width=3.2cm,minimum height=1.1cm]
+        at (11.4,0.85) {\textbf{LSTM training set}\\$Y\times189$ windows};
+\end{tikzpicture}}
+
+\databanner
+\threadstrip{0}
+
+\note{Set-up slide. Whatever the protocol, the synthetic price series is turned into LSTM training data the same way: a length-64 window (63 days of context, 1-day-ahead target) slides over each 252-day synthetic year, yielding $252-63=189$ context windows per year. For a $Y$-year augmentation that is exactly $Y\times189$ windows. The next three slides change only ONE thing: how the underlying Markov chain produces those 252-day years. The thread strip at the bottom is faded here on purpose --- it lights up protocol by protocol.}
+\end{frame}
+
+% ===================================================================
+% Slide 2 -- authors
+% ===================================================================
+\begin{frame}{Protocol 1 / 3 --- \texttt{authors}}
+\framesubtitle{Yearly restart from the \emph{same} conditional state --- paper-faithful}
+\databanner
+\vspace{-0.5mm}
+
+\centering
+\resizebox{0.88\textwidth}{!}{%
+\begin{tikzpicture}[font=\scriptsize,
+  cell/.style={rectangle,rounded corners=2pt,draw=NavyBlue!55,fill=NavyBlue!6,
+               minimum width=2.6cm,minimum height=1.25cm},
+  mc/.style={circle,draw=GraySoft,fill=Sand,minimum size=3.6mm,inner sep=0pt},
+  s0/.style={circle,draw=NavyBlue,fill=NavyBlue!20,minimum size=7mm,inner sep=0pt,
+             font=\tiny,text=NavyDeep},
+  mcarr/.style={-{Latex[length=1.3mm]},GraySoft},
+  feed/.style={-{Latex[length=1.7mm]},NavyBlue,thick},
+  down/.style={-{Latex[length=1.7mm]},NavyDeep},
+  pool/.style={rectangle,rounded corners=2pt,draw=TealAcc,thick,fill=TealAcc!12,
+               align=center,minimum width=2.5cm,minimum height=1.7cm,text=NavyDeep}]
+
+  % shared init node
+  \node[s0] (s0) at (-1.1,4.15) {$s_0$};
+  \node[anchor=south,NavyBlue,font=\tiny] at (-1.1,4.6) {$(p_0,l_0,m_0)$};
+  \node[anchor=west,NavyBlue,font=\tiny] at (-2.4,3.55) {re-init: \emph{same} $s_0$ every year};
+
+  \node[pool] (pool) at (12.4,1.55) {\textbf{LSTM}\\\textbf{training set}\\$Y\times189$\\windows};
+
+  \foreach \k/\bx in {1/0, 2/3.6, 3/7.2}{
+     \node[cell] (c\k) at (\bx+1.3,2.55) {};
+     \node[anchor=south,NavyDeep,font=\tiny] at (\bx+1.3,2.0) {year \k\ ($252$\,d)};
+     \foreach \j in {0,1,2}{
+        \node[mc] (m\k\j) at (\bx+0.55+\j*0.75,2.78) {};
+     }
+     \draw[mcarr] (m\k0)--(m\k1); \draw[mcarr] (m\k1)--(m\k2);
+     \draw[feed] (s0) to[out=0,in=110] (m\k0.north);
+     % window stack
+     \draw[Coral,fill=Coral!10]  (\bx+1.04,0.50) rectangle (\bx+1.66,0.78);
+     \draw[Coral,fill=Coral!12]  (\bx+0.96,0.42) rectangle (\bx+1.58,0.70);
+     \draw[Coral,thick,fill=Coral!20] (\bx+0.88,0.34) rectangle (\bx+1.50,0.62);
+     \node[Coral,font=\tiny\bfseries,anchor=north] at (\bx+1.2,0.20) {189 windows};
+     \draw[down] (\bx+1.3,1.9) -- (\bx+1.3,0.86);
+     \draw[down] (\bx+1.66,0.48) to[out=0,in=180] (pool.west);
+  }
+  \node[GraySoft] at (10.4,2.55) {$\cdots\ Y$};
+\end{tikzpicture}}
+
+\threadstrip{1}
+
+\note{Protocol used in the paper. Every synthetic year is an INDEPENDENT Markov-chain rollout that starts from the very same conditional state $s_0=(p_0,l_0,m_0)$ --- the chain is rewound to year zero each time. There is no cross-year memory: year 7 looks statistically like year 1. Pro: faithful to the original FTS-Diffusion evaluation. Con: the long-range transition structure of the MC is never exercised. Note the bottom half --- 252 days $\to$ 189 windows $\to$ pool --- which will stay identical on the next two slides.}
+\end{frame}
+
+% ===================================================================
+% Slide 3 -- split
+% ===================================================================
+\begin{frame}{Protocol 2 / 3 --- \texttt{split}}
+\framesubtitle{One continuous chain generated up front, then cut --- our re-implementation}
+\databanner
+\vspace{-0.5mm}
+
+\centering
+\resizebox{0.88\textwidth}{!}{%
+\begin{tikzpicture}[font=\scriptsize,
+  cell/.style={rectangle,rounded corners=2pt,draw=NavyBlue!55,fill=NavyBlue!6,
+               minimum width=2.6cm,minimum height=1.25cm},
+  mc/.style={circle,draw=GraySoft,fill=Sand,minimum size=3.6mm,inner sep=0pt},
+  s0/.style={circle,draw=Coral,fill=Coral!22,minimum size=7mm,inner sep=0pt,
+             font=\tiny,text=NavyDeep},
+  mcarr/.style={-{Latex[length=1.3mm]},GraySoft},
+  link/.style={-{Latex[length=1.9mm]},Coral,very thick},
+  down/.style={-{Latex[length=1.7mm]},NavyDeep},
+  pool/.style={rectangle,rounded corners=2pt,draw=TealAcc,thick,fill=TealAcc!12,
+               align=center,minimum width=2.5cm,minimum height=1.7cm,text=NavyDeep}]
+
+  \node[s0] (s0) at (-1.0,2.78) {$s_0$};
+  \node[anchor=south,Coral,font=\tiny] at (-1.0,3.2) {one $s_0$};
+  \node[anchor=west,Coral,font=\tiny] at (-2.0,4.05)
+        {\emph{one} continuous Markov chain --- never restarts};
+
+  \node[pool] (pool) at (12.4,1.55) {\textbf{LSTM}\\\textbf{training set}\\$Y\times189$\\windows};
+
+  \foreach \k/\bx in {1/0, 2/3.6, 3/7.2}{
+     \node[cell] (c\k) at (\bx+1.3,2.55) {};
+     \node[anchor=south,NavyDeep,font=\tiny] at (\bx+1.3,2.0) {year \k\ ($252$\,d)};
+     \foreach \j in {0,1,2}{
+        \node[mc] (m\k\j) at (\bx+0.55+\j*0.75,2.78) {};
+     }
+     \draw[mcarr] (m\k0)--(m\k1); \draw[mcarr] (m\k1)--(m\k2);
+     \draw[Coral,fill=Coral!10]  (\bx+1.04,0.50) rectangle (\bx+1.66,0.78);
+     \draw[Coral,fill=Coral!12]  (\bx+0.96,0.42) rectangle (\bx+1.58,0.70);
+     \draw[Coral,thick,fill=Coral!20] (\bx+0.88,0.34) rectangle (\bx+1.50,0.62);
+     \node[Coral,font=\tiny\bfseries,anchor=north] at (\bx+1.2,0.20) {189 windows};
+     \draw[down] (\bx+1.3,1.9) -- (\bx+1.3,0.86);
+     \draw[down] (\bx+1.66,0.48) to[out=0,in=180] (pool.west);
+  }
+  % continuous chain links across years
+  \draw[link] (s0) -- (m10);
+  \draw[link] (m12) -- (m20);
+  \draw[link] (m22) -- (m30);
+  % year-cut lines (only LSTM windowing)
+  \foreach \cx in {3.1, 6.7}{
+     \draw[GraySoft!75,dashed,thin] (\cx,3.5) -- (\cx,0.0);
+  }
+  \node[GraySoft,font=\tiny,anchor=south] at (3.1,3.5) {window cut};
+  \node[GraySoft,font=\tiny,anchor=south] at (6.7,3.5) {window cut};
+  \node[GraySoft] at (10.4,2.55) {$\cdots\ Y$};
+\end{tikzpicture}}
+
+\threadstrip{2}
+
+\note{Our re-implementation. Instead of $Y$ separate one-year chains, we roll out a SINGLE continuous Markov chain of length $Y\cdot252$ days up front. The thick coral links show the chain crossing year boundaries: year $k+1$ continues exactly where year $k$ ended. The dashed lines are NOT generation restarts --- they are only where we cut the series into LSTM windows. Same $s_0$, same $Y\times189$ windows as \texttt{authors}; the only change is that the MC's cross-year transition structure is now actually used.}
+\end{frame}
+
+% ===================================================================
+% Slide 4 -- random_init
+% ===================================================================
+\begin{frame}{Protocol 3 / 3 --- \texttt{random\_init}}
+\framesubtitle{Yearly restart from a \emph{random} state --- diagnostic control}
+\databanner
+\vspace{-0.5mm}
+
+\centering
+\resizebox{0.88\textwidth}{!}{%
+\begin{tikzpicture}[font=\scriptsize,
+  cell/.style={rectangle,rounded corners=2pt,draw=NavyBlue!55,fill=NavyBlue!6,
+               minimum width=2.6cm,minimum height=1.25cm},
+  mc/.style={circle,draw=GraySoft,fill=Sand,minimum size=3.6mm,inner sep=0pt},
+  feed/.style={-{Latex[length=1.7mm]},TealAcc,thick},
+  mcarr/.style={-{Latex[length=1.3mm]},GraySoft},
+  down/.style={-{Latex[length=1.7mm]},NavyDeep},
+  pool/.style={rectangle,rounded corners=2pt,draw=TealAcc,thick,fill=TealAcc!12,
+               align=center,minimum width=2.5cm,minimum height=1.7cm,text=NavyDeep}]
+
+  \node[anchor=west,TealAcc,font=\tiny] at (-1.4,4.55)
+        {re-init: a \emph{different random} state every year};
+
+  \node[pool] (pool) at (12.4,1.55) {\textbf{LSTM}\\\textbf{training set}\\$Y\times189$\\windows};
+
+  \foreach \k/\bx/\sh in {1/0/18, 2/3.6/34, 3/7.2/50}{
+     \node[cell] (c\k) at (\bx+1.3,2.55) {};
+     \node[anchor=south,NavyDeep,font=\tiny] at (\bx+1.3,2.0) {year \k\ ($252$\,d)};
+     % per-year random init node
+     \node[circle,draw=Coral,fill=Coral!\sh,minimum size=7mm,inner sep=0pt,
+           font=\tiny,text=NavyDeep] (s\k) at (\bx+1.3,4.1) {$s_0^{\k}$};
+     \foreach \j in {0,1,2}{
+        \node[mc] (m\k\j) at (\bx+0.55+\j*0.75,2.78) {};
+     }
+     \draw[mcarr] (m\k0)--(m\k1); \draw[mcarr] (m\k1)--(m\k2);
+     \draw[feed] (s\k) to[out=-90,in=110] (m\k0.north);
+     \draw[Coral,fill=Coral!10]  (\bx+1.04,0.50) rectangle (\bx+1.66,0.78);
+     \draw[Coral,fill=Coral!12]  (\bx+0.96,0.42) rectangle (\bx+1.58,0.70);
+     \draw[Coral,thick,fill=Coral!20] (\bx+0.88,0.34) rectangle (\bx+1.50,0.62);
+     \node[Coral,font=\tiny\bfseries,anchor=north] at (\bx+1.2,0.20) {189 windows};
+     \draw[down] (\bx+1.3,1.9) -- (\bx+1.3,0.86);
+     \draw[down] (\bx+1.66,0.48) to[out=0,in=180] (pool.west);
+  }
+  \node[GraySoft] at (10.4,2.55) {$\cdots\ Y$};
+\end{tikzpicture}}
+
+\threadstrip{3}
+
+\note{Diagnostic control. Like \texttt{authors}, each year is an independent one-year chain --- but the start state is now drawn at random from \texttt{SEGMENTS\_INIT} (the post-init segments of the real LSTM-train period) instead of the fixed $s_0$. This separates two effects: the deterministic initialisation $(p_0,l_0,m_0)$ versus the MC dynamics. If \texttt{random\_init} matches \texttt{authors}, the fixed init was doing little; if it differs a lot, the init state matters more than the chain itself. All three protocols still feed the LSTM the identical $Y\times189$ windows --- say this out loud.}
+\end{frame}

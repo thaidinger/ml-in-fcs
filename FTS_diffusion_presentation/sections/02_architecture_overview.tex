@@ -1,0 +1,129 @@
+\section{Architecture overview}
+
+\begin{frame}{The modelling assumption: scale-invariant patterns}
+\centering
+\resizebox{0.86\textwidth}{!}{%
+\begin{tikzpicture}[font=\small]
+  \def\patA{(0,0) (0.15,0.45) (0.32,0.85) (0.5,1.0) (0.68,0.85) (0.85,0.45) (1,0)}
+  \def\patB{(0,0) (0.12,0.55) (0.26,0.86) (0.40,0.40) (0.5,0.56) (0.60,0.40)
+            (0.74,0.86) (0.88,0.55) (1,0)}
+
+  % --- legend: the K reference patterns ---
+  \node[anchor=west,font=\footnotesize\bfseries,NavyBlue] at (-0.1,2.85)
+       {Reference patterns (here $K=2$):};
+  \begin{scope}[shift={(6.0,2.55)},xscale=0.95,yscale=0.55]
+     \draw[Coral,line width=1.3pt,line cap=round] plot[smooth] coordinates \patA;
+  \end{scope}
+  \node[Coral,font=\footnotesize] at (7.15,2.78) {$p_1$};
+  \begin{scope}[shift={(8.1,2.55)},xscale=1.05,yscale=0.55]
+     \draw[TealAcc,line width=1.3pt,line cap=round] plot[smooth] coordinates \patB;
+  \end{scope}
+  \node[TealAcc,font=\footnotesize] at (9.35,2.78) {$p_2$};
+
+  % --- observed series: a sequence of scaled copies ---
+  \node[anchor=west,font=\footnotesize\bfseries,NavyBlue] at (-0.1,2.18)
+       {observed series $X$:};
+  \draw[GraySoft,thin,-{Latex[length=2mm]}] (-0.15,0) -- (10.0,0)
+       node[right,font=\scriptsize]{$t$};
+  \foreach \x/\w/\h in {0/1.5/1.0, 3.9/0.95/1.55, 6.25/2.1/0.80}{
+     \fill[Coral!12] (\x,0) rectangle ({\x+\w},\h);
+     \begin{scope}[shift={(\x,0)},xscale=\w,yscale=\h]
+        \draw[Coral,line width=1.3pt,line cap=round] plot[smooth] coordinates \patA;
+     \end{scope}
+     \node[Coral,font=\scriptsize] at ({\x+\w/2},1.82) {$p_1$};
+  }
+  \foreach \x/\w/\h in {1.5/2.4/0.65, 4.85/1.4/1.05, 8.35/1.1/1.45}{
+     \fill[TealAcc!12] (\x,0) rectangle ({\x+\w},\h);
+     \begin{scope}[shift={(\x,0)},xscale=\w,yscale=\h]
+        \draw[TealAcc,line width=1.3pt,line cap=round] plot[smooth] coordinates \patB;
+     \end{scope}
+     \node[TealAcc,font=\scriptsize] at ({\x+\w/2},1.82) {$p_2$};
+  }
+  \foreach \xb in {0,1.5,3.9,4.85,6.25,8.35,9.45}{
+     \draw[GraySoft!45,thin] (\xb,0) -- (\xb,1.68);
+  }
+
+  % --- alpha / beta on two copies of pattern p1 ---
+  \draw[NavyBlue,{Latex}-{Latex},line width=0.8pt] (0.05,-0.32) -- (1.45,-0.32);
+  \node[NavyBlue,font=\scriptsize,fill=white,inner sep=1pt] at (0.75,-0.32) {$\alpha$};
+  \draw[NavyBlue,{Latex}-{Latex},line width=0.8pt] (-0.20,0) -- (-0.20,1.0);
+  \node[NavyBlue,font=\scriptsize,anchor=east] at (-0.26,0.5) {$\beta$};
+  \draw[NavyBlue,{Latex}-{Latex},line width=0.8pt] (3.95,-0.32) -- (4.80,-0.32);
+  \node[NavyBlue,font=\scriptsize,fill=white,inner sep=1pt] at (4.38,-0.32) {$\alpha'$};
+  \draw[NavyBlue,{Latex}-{Latex},line width=0.8pt] (3.72,0) -- (3.72,1.55);
+  \node[NavyBlue,font=\scriptsize,anchor=east] at (3.66,0.78) {$\beta'$};
+  \draw[NavyDeep,dashed,thin,-{Latex[length=2mm]}]
+        (1.50,-0.82) to[bend right=22] (3.55,-0.82);
+  \node[NavyDeep,font=\scriptsize,align=center] at (2.52,-1.35)
+       {same pattern $p_1$ --- only the scale $(\alpha,\beta)$ changes};
+\end{tikzpicture}}
+
+\vspace{1mm}
+\begin{block}{Core assumption}
+\small The observed series $X$ is a sequence of segments; each segment is a copy of one
+of $K$ basic patterns, rescaled in \textbf{duration}~($\alpha$) and \textbf{magnitude}~($\beta$).
+Generating $X$ then reduces to three questions: \emph{which} pattern, at \emph{what} scale, in \emph{what} order.
+\end{block}
+\note{This is the assumption the whole method rests on. Instead of modelling the raw series directly, FTS-Diffusion assumes it is built from a small dictionary of recurring shapes --- here only two --- each appearing many times at different durations ($\alpha$) and amplitudes ($\beta$). The two annotated coral segments are the same pattern $p_1$: identical shape, different $(\alpha,\beta)$. If the assumption holds, generating a realistic series splits into three sub-problems --- pick a pattern, pick its scale, pick the order --- which is exactly what the three modules do.}
+\end{frame}
+
+\begin{frame}{One pipeline, two phases: training and generation}
+\centering
+\resizebox{0.98\textwidth}{!}{%
+\begin{tikzpicture}[font=\small,
+   mod/.style ={rectangle,rounded corners=2pt,draw=NavyBlue,thick,fill=NavyBlue!7,
+                minimum width=2.2cm,minimum height=1.1cm,align=center,text=NavyDeep},
+   core/.style={rectangle,rounded corners=2pt,draw=Coral,line width=1.5pt,fill=Coral!12,
+                minimum width=2.2cm,minimum height=1.1cm,align=center,text=NavyDeep},
+   io/.style  ={rectangle,draw=GraySoft,fill=Sand,thin,minimum width=1.9cm,
+                minimum height=1.0cm,align=center,font=\footnotesize,text=NavyDeep},
+   gho/.style ={rectangle,rounded corners=2pt,draw=GraySoft!60,fill=GraySoft!12,
+                minimum width=2.2cm,minimum height=1.1cm,align=center,text=GraySoft},
+   arr/.style ={-{Latex[length=2.4mm]},thick,NavyDeep},
+   lbl/.style ={font=\scriptsize,NavyBlue,inner sep=2pt}]
+
+  % ===== PHASE 1 : TRAINING =====
+  \node[anchor=west,font=\footnotesize\bfseries,NavyBlue] at (-0.3,3.45)
+       {Phase 1 --- \textsc{Training}: learn from one real series};
+  \node[io]   (raw)  at (1.0,2.00) {Raw\\series $X$};
+  \node[core] (sisc) at (4.7,2.00) {\textbf{SISC}};
+  \node[mod]  (pgm)  at (10.0,2.78) {\textbf{PGM}};
+  \node[mod]  (pem)  at (10.0,1.22) {\textbf{PEM}};
+  \draw[arr] (raw) -- (sisc);
+  \draw[arr] (sisc.east) to[bend left=13]
+        node[lbl,above,pos=0.5]{segment shapes} (pgm.west);
+  \draw[arr] (sisc.east) to[bend right=13]
+        node[lbl,below,pos=0.5]{$(p,\alpha,\beta)$ trajectory} (pem.west);
+  \node[font=\scriptsize,Coral,align=center,anchor=north] at (4.7,1.28)
+       {\textbf{core component}\\extracts the dictionary $+$ labels};
+  \node[font=\scriptsize,GraySoft,anchor=west] at (11.25,2.78) {trained};
+  \node[font=\scriptsize,GraySoft,anchor=west] at (11.25,1.22) {trained};
+
+  \draw[GraySoft!50,dashed,thin] (-0.3,0.20) -- (15.4,0.20);
+
+  % ===== PHASE 2 : GENERATION =====
+  \node<2->[anchor=west,font=\footnotesize\bfseries,NavyBlue] at (-0.3,-0.40)
+       {Phase 2 --- \textsc{Generation}: sample a new synthetic series};
+  \node<2->[gho] (sx)   at (1.0,-1.85) {\textbf{SISC}};
+  \node<2->[mod] (pemg) at (4.6,-1.85) {\textbf{PEM}};
+  \node<2->[mod] (den)  at (8.2,-1.85) {denoising};
+  \node<2->[mod] (dec)  at (11.4,-1.85) {decoder};
+  \node<2->[io]  (syn)  at (14.2,-1.85) {Synthetic\\series};
+  \draw<2->[arr] (pemg) -- node[lbl,above]{$(p,\alpha,\beta)$} (den);
+  \draw<2->[arr] (den)  -- (dec);
+  \draw<2->[arr] (dec)  -- (syn);
+  \draw<2->[Coral,line width=1pt] (sx.south west) -- (sx.north east);
+  \draw<2->[Coral,line width=1pt] (sx.north west) -- (sx.south east);
+  \node<2->[font=\scriptsize,GraySoft,anchor=north,align=center] at (1.0,-2.55)
+       {not used --- dictionary\\is already fixed};
+  \draw<2->[GraySoft!60,dashed,rounded corners=2pt] (6.85,-2.55) rectangle (12.55,-1.15);
+  \node<2->[font=\scriptsize,GraySoft,anchor=south] at (9.7,-1.13)
+       {sampling-time parts of PGM};
+\end{tikzpicture}}
+
+\vspace{1mm}
+\footnotesize
+\only<1>{During training the data flows \emph{into} the modules; \alert{SISC is the core component} --- it discovers the pattern dictionary that PGM and PEM are then fit to.}
+\only<2>{\alert{Generation drops SISC entirely}: the dictionary is fixed after training. Only \textbf{PEM}, the \textbf{denoising} process and the \textbf{decoder} run at sampling time.}
+\note{Two phases, deliberately shown together. In training, a single real series flows into SISC, which does the heavy lifting --- it discovers the scale-invariant dictionary and emits the $(p,\alpha,\beta)$ labels; PGM and PEM are then trained on that output. In generation the picture is smaller: SISC is gone (the dictionary is already learned), and a new series is produced by PEM (which rolls out the $(p,\alpha,\beta)$ state sequence), the denoising process and the decoder. How PGM and PEM work internally is the subject of the next two sections --- here we only fix which module runs when.}
+\end{frame}

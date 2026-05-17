@@ -1,0 +1,121 @@
+\section{TATR results: protocol comparisons}
+
+% ============================ S&P 500 ============================
+\begin{frame}{S\&P 500, $K=14$: authors vs split}
+\begin{columns}[onlytextwidth,T]
+\begin{column}{0.49\textwidth}
+\centering\textbf{\color{Coral}authors}\\[1mm]
+\includegraphics[width=\linewidth]{figures/tatr/sp500/k14/authors/final_enhanced.pdf}
+\end{column}
+\begin{column}{0.49\textwidth}
+\centering\textbf{\color{TealAcc}split}\\[1mm]
+\includegraphics[width=\linewidth]{figures/tatr/sp500/k14/split/final_enhanced.pdf}
+\end{column}
+\end{columns}
+\vspace{1mm}
+\centering\footnotesize Same data budget and same \#runs --- only the MC roll-out changes:
+yearly re-init (\textcolor{Coral}{authors, $+208.6\%$}) vs one continuous chain (\textcolor{TealAcc}{split, $-73.3\%$}).
+\note{Band = authors' 2.5\%-trimmed min/max (\texttt{fill\_between}, exactly as \texttt{plot\_dowmstream\_tatr}); markers carry the per-point MAPE. Both panels: 30 runs, identical training slice. The only change is how the Markov chain is rolled out across years --- yearly re-init from $(p_0,\alpha_0,\beta_0)$ vs a single continuous chain cut for the LSTM window. On S\&P 500 the continuous chain is dramatically better: MAPE \emph{drops} below the year-0 baseline.}
+\end{frame}
+
+\begin{frame}{S\&P 500, $K=14$: authors vs random init}
+\begin{columns}[onlytextwidth,T]
+\begin{column}{0.49\textwidth}
+\centering\textbf{\color{Coral}authors}\\[1mm]
+\includegraphics[width=\linewidth]{figures/tatr/sp500/k14/authors/final_enhanced.pdf}
+\end{column}
+\begin{column}{0.49\textwidth}
+\centering\textbf{\color{NavyBlue}random init}\\[1mm]
+\includegraphics[width=\linewidth]{figures/tatr/sp500/k14/random_init/final_enhanced.pdf}
+\end{column}
+\end{columns}
+\vspace{1mm}
+\centering\footnotesize Replacing the deterministic re-init $(p_0,\alpha_0,\beta_0)$ with a random MC state:
+\textcolor{Coral}{$+208.6\%$} $\rightarrow$ \textcolor{NavyBlue}{$+67.7\%$} --- the fixed seed \emph{hurts}.
+\note{random\_init keeps the yearly re-init schedule but seeds each year from a random Markov state instead of the deterministic $(p_0,\alpha_0,\beta_0)$. It is markedly better than the authors' protocol here: the deterministic seed, not the MC dynamics, is what drags MAPE up. This is a diagnostic, not a recommended protocol.}
+\end{frame}
+
+\begin{frame}{Authors' checkpoint vs.\ trained-from-scratch (S\&P 500, $K=14$)}
+\framesubtitle{Same authors protocol; only the PGM$+$PEM weights differ}
+\vspace{-1mm}
+\begin{columns}[onlytextwidth,T]
+\begin{column}{0.49\textwidth}
+\centering\textbf{authors' checkpoint}\\[1mm]
+\includegraphics[width=\linewidth]{figures/tatr/sp500/k14/authors/final_enhanced.pdf}
+\end{column}
+\begin{column}{0.49\textwidth}
+\centering\textbf{trained from scratch}\\[1mm]
+\includegraphics[width=\linewidth]{figures/tatr/sp500_us/k14/authors/final_enhanced.pdf}
+\end{column}
+\end{columns}
+\vspace{1mm}
+\centering\footnotesize Authors' checkpoint \textcolor{Coral}{$+208.6\%$} vs.\ our from-scratch PGM$+$PEM weights \textcolor{NavyBlue}{$+169.6\%$}: same qualitative degradation.
+\note{Both panels run the \texttt{authors} protocol (yearly re-init). Left: the authors' provided PGM$+$PEM checkpoints. Right: weights we re-trained from scratch on our 80\% train slice (the \texttt{sp500\_us} architecture). The two curves degrade the same way, so the protocol --- not a bad checkpoint --- drives the result.}
+\end{frame}
+
+% ============================ GOOG ============================
+\begin{frame}{GOOG, $K=11$: authors vs split}
+\begin{columns}[onlytextwidth,T]
+\begin{column}{0.49\textwidth}
+\centering\textbf{\color{Coral}authors}\\[1mm]
+\includegraphics[width=\linewidth]{figures/tatr/goog/k11/authors/final_enhanced.pdf}
+\end{column}
+\begin{column}{0.49\textwidth}
+\centering\textbf{\color{TealAcc}split}\\[1mm]
+\includegraphics[width=\linewidth]{figures/tatr/goog/k11/split/final_enhanced.pdf}
+\end{column}
+\end{columns}
+\vspace{1mm}
+\centering\footnotesize GOOG $K=11$: yearly re-init explodes (\textcolor{Coral}{$+981.7\%$}); the continuous chain contains it (\textcolor{TealAcc}{$+90.4\%$}).
+\note{$K=11$ on GOOG: a smaller post-SISC budget shrinks the cluster count. The authors' yearly re-init is catastrophic here ($+982\%$), while the split protocol keeps MAPE within a factor of two. Mind the y-axis: the two panels are on very different scales.}
+\end{frame}
+
+\begin{frame}{GOOG, $K=11$: authors vs random init}
+\begin{columns}[onlytextwidth,T]
+\begin{column}{0.49\textwidth}
+\centering\textbf{\color{Coral}authors}\\[1mm]
+\includegraphics[width=\linewidth]{figures/tatr/goog/k11/authors/final_enhanced.pdf}
+\end{column}
+\begin{column}{0.49\textwidth}
+\centering\textbf{\color{NavyBlue}random init}\\[1mm]
+\includegraphics[width=\linewidth]{figures/tatr/goog/k11/random_init/final_enhanced.pdf}
+\end{column}
+\end{columns}
+\vspace{1mm}
+\centering\footnotesize A random MC state instead of the deterministic seed collapses the error:
+\textcolor{Coral}{$+981.7\%$} $\rightarrow$ \textcolor{NavyBlue}{$+48.3\%$}.
+\note{The same diagnostic as on S\&P 500, but the gap is far larger on GOOG: the deterministic $(p_0,\alpha_0,\beta_0)$ seeds the chain in a region the PEM cannot recover from, and a random state avoids it almost entirely.}
+\end{frame}
+
+% ============================ ZC=F ============================
+\begin{frame}{ZC$=$F, $K=11$: authors vs split}
+\begin{columns}[onlytextwidth,T]
+\begin{column}{0.49\textwidth}
+\centering\textbf{\color{Coral}authors}\\[1mm]
+\includegraphics[width=\linewidth]{figures/tatr/zcf/k11/authors/final_enhanced.pdf}
+\end{column}
+\begin{column}{0.49\textwidth}
+\centering\textbf{\color{TealAcc}split}\\[1mm]
+\includegraphics[width=\linewidth]{figures/tatr/zcf/k11/split/final_enhanced.pdf}
+\end{column}
+\end{columns}
+\vspace{1mm}
+\centering\footnotesize ZC$=$F $K=11$: here the continuous chain is \emph{worse} (\textcolor{TealAcc}{$+174.6\%$}) than yearly re-init (\textcolor{Coral}{$+75.6\%$}) --- the ranking is asset-dependent.
+\note{ZC=F (corn futures) reverses the S\&P 500 / GOOG ordering: the split protocol degrades more than the authors' yearly re-init. No protocol dominates across assets --- the MC roll-out interacts with the motif library, which differs per asset.}
+\end{frame}
+
+\begin{frame}{ZC$=$F, $K=11$: authors vs random init}
+\begin{columns}[onlytextwidth,T]
+\begin{column}{0.49\textwidth}
+\centering\textbf{\color{Coral}authors}\\[1mm]
+\includegraphics[width=\linewidth]{figures/tatr/zcf/k11/authors/final_enhanced.pdf}
+\end{column}
+\begin{column}{0.49\textwidth}
+\centering\textbf{\color{NavyBlue}random init}\\[1mm]
+\includegraphics[width=\linewidth]{figures/tatr/zcf/k11/random_init/final_enhanced.pdf}
+\end{column}
+\end{columns}
+\vspace{1mm}
+\centering\footnotesize random init stays moderate (\textcolor{NavyBlue}{$+49.4\%$}), slightly below yearly re-init (\textcolor{Coral}{$+75.6\%$}).
+\note{On ZC=F the deterministic seed costs less than on the other assets, but random\_init is still the lowest-degradation variant. Across all three assets random\_init lands in a narrow $+48\%$ to $+68\%$ band --- consistently moderate, unlike the authors' protocol.}
+\end{frame}

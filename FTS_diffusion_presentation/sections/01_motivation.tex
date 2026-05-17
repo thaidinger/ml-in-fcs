@@ -1,0 +1,38 @@
+\section{Motivation}
+
+\begin{frame}{The problem: financial time series are hard to generate}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.55\textwidth}
+\begin{block}{Empirical stylized facts}
+\begin{itemize}\setlength\itemsep{2pt}
+  \item Heavy-tailed returns; rare but consequential crises.
+  \item Volatility clustering, long memory in $|r_t|$.
+  \item Scale-invariant patterns at irregular timescales.
+  \item Single realised history (no resampling).
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{0.42\textwidth}
+\begin{alertblock}{Why standard generators fail}
+Fixed-window models segment in \alert{calendar time}, not \alert{pattern time}.
+The same shape at twice the duration becomes a different sample.
+\end{alertblock}
+\end{column}
+\end{columns}
+\note{Three things make finance hard: heavy tails, volatility clustering, and the fact that the same market shape can play out over very different timescales. Diffusion models that slice the series into fixed windows lose this last property.}
+\end{frame}
+
+\begin{frame}{The paper's contribution}
+\textbf{FTS-Diffusion} (Yu et al., ICLR 2024): a three-module pipeline.
+\medskip
+\begin{itemize}\setlength\itemsep{2pt}
+  \item \alert{SISC}: Scale-Invariant Subsequence Clustering, discovers a finite dictionary of variable-length motifs using DTW.
+  \item \alert{PGM}: Pattern Generation Module, a conditional diffusion network that synthesises new latent motifs.
+  \item \alert{PEM}: Pattern Evolution Module, a Markov chain over latent states $(p_m,\alpha_m,\beta_m)$ steering long-horizon dynamics.
+\end{itemize}
+\medskip
+\begin{exampleblock}{Our goal}
+Replicate the pipeline, stress-test it on three assets (S\&P 500, GOOG, ZC=F), and isolate the methodological choices that matter.
+\end{exampleblock}
+\note{Recognise motifs, generate motifs, evolve motifs. We want to identify which design choices are load-bearing versus accidental.}
+\end{frame}
