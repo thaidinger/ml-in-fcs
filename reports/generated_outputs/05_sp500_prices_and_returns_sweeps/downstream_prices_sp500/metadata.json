@@ -1,0 +1,33 @@
+{
+  "asset": "sp500",
+  "datatype": "prices",
+  "reference_dir": "fts-diffusion-ref",
+  "output_dir": "reports/generated_outputs/05_sp500_prices_and_returns_sweeps/downstream_prices_sp500",
+  "used_stored_sisc_artifacts": true,
+  "used_stored_pgm_pem_checkpoints": true,
+  "author_style_settings_preserved": {
+    "train_test_split": "reference prepare_segments default 0.8",
+    "tatr_initial_real_period": "252*5 prices, evaluated as prices",
+    "window_size": 64,
+    "ahead": 1,
+    "lstm_layers": 2,
+    "lstm_optimizer": "Adam lr=1e-2 from reference predictor_lstm.py",
+    "summary": "reference trimmed mean/min/max formula with small-n guard"
+  },
+  "downscaled_settings": {
+    "datatype": "prices",
+    "runs": 3,
+    "epochs": 25,
+    "tatr_augmentations": 10,
+    "tmtr_proportions": 10,
+    "aug_length": 252,
+    "mix_length": 1260,
+    "window_size": 64,
+    "ahead": 1,
+    "hidden_dim": 32,
+    "loss": "mae",
+    "seed": 42,
+    "output": null
+  },
+  "elapsed_seconds": 274.548
+}

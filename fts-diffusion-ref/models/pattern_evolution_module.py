@@ -14,13 +14,19 @@ model_path = 'trained_models/'
 
 
 def _checkpoint_paths(store_name):
+  # keep original behaviour for non-timestamped usage but return timestamped paths
   if store_name.endswith('.pth'):
     base = store_name[:-4]
   elif store_name.endswith('.pt'):
     base = store_name[:-3]
   else:
     base = store_name
-  return model_path + base + '.pth', model_path + base + '.pt'
+  from datetime import datetime
+  timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+  state_ts = model_path + base + '_' + timestamp + '.pth'
+  full_ts = model_path + base + '_' + timestamp + '.pt'
+  latest = model_path + base + '.latest'
+  return state_ts, full_ts, latest
 
 
 
@@ -97,6 +103,9 @@ def train_evolution_module(
       target_pattern = batch_y[:, 0].long()
       target_length = (batch_y[:, 1] - 10).long()
       target_magnitude = batch_y[:, 2].float().view(-1, 1)
+      target_pattern = target_pattern.to(model.device)
+      target_length = target_length.to(model.device)
+      target_magnitude = target_magnitude.to(model.device)
       # print(target_pattern.shape, target_length.shape, target_magnitude.shape)
 
       # Get model prediction
@@ -135,9 +144,14 @@ def train_evolution_module(
       log_string += " --> Best model ever"
       best_loss = epoch_loss
       if store_model:
-        state_dict_path, full_model_path = _checkpoint_paths(store_name)
+        state_dict_path, full_model_path, latest_file = _checkpoint_paths(store_name)
         torch.save(model.state_dict(), state_dict_path)
         torch.save(model, full_model_path)
+        try:
+          with open(latest_file, 'w') as f:
+            f.write(os.path.basename(state_dict_path))
+        except Exception:
+          pass
         log_string += " (stored)"
     print(log_string)
 

@@ -1,0 +1,15 @@
+# Extra packages for the FTS-Diffusion reference code on the Clariden NGC container.
+# Do not install torch here; use the PyTorch/CUDA stack already provided by the
+# course container.
+
+numpy
+pandas
+matplotlib
+seaborn
+scikit-learn
+scipy
+statsmodels
+tqdm
+yfinance
+dtaidistance
+tslearn

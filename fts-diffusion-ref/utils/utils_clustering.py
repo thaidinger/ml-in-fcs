@@ -1,11 +1,29 @@
 import numpy as np
 import pandas as pd
+import os
+import glob
 from scipy.optimize import linear_sum_assignment
 from dtaidistance import dtw as dtai_dtw
 from tslearn.barycenters import softdtw_barycenter, dtw_barycenter_averaging, dtw_barycenter_averaging_subgradient
 import matplotlib.pyplot as plt
 
 res_path = 'res/'
+
+
+def _resolve_sisc_prefix(filename):
+  latest_file = res_path + filename + '.latest'
+  if os.path.exists(latest_file):
+    with open(latest_file, 'r') as f:
+      prefix = f.read().strip()
+    if prefix:
+      return prefix
+  pattern = res_path + filename + '_*_centroids.csv'
+  matches = glob.glob(pattern)
+  if matches:
+    # choose most recent centroid file and strip the suffix
+    latest = max(matches, key=os.path.getmtime)
+    return latest.removesuffix('_centroids.csv')
+  return filename
 
 
 
@@ -22,6 +40,7 @@ def load_sisc_res(
   """ Load learned segmentation and clustering results """
   dict_init = {'kmeans++': 'kmpp', 'random_sample': 'rs', 'random_noise': 'rn'}
   filename = f'sisc_{dataname}_k{n_clusters}_l{l_min}-{l_max}_{barycenter[:4]}_{dict_init[init_strategy]}'
+  filename = _resolve_sisc_prefix(filename)
   df_centroids = pd.read_csv(res_path + filename + '_centroids.csv')
   df_labels = pd.read_csv(res_path + filename+'_labels.csv')
   df_subsequences = pd.read_csv(res_path + filename + '_subsequences.csv')

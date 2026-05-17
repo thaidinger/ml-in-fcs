@@ -19,27 +19,28 @@ model_path = 'trained_models/'
 # Train FTS-Diffusion (generation-evolution) #
 ##############################################
 
-def train_ftsdiffusion(fts, train_test_split=0.8, store_model=True):
+def train_ftsdiffusion(
+    fts,
+    train_test_split=0.8,
+    store_model=True,
+    recognition_max_iters=None,
+    generation_epochs=None,
+    evolution_epochs=None):
   """ Train FTS-Diffusion (generation and evolution module) """
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-  if _has_recognition_artifacts():
-    print("Found existing SISC artifacts in res/. Skipping recognition stage.")
-  else:
-    train_ftsdiffusion_recognition(fts, store_model)
-  has_pgm = _has_generation_artifact()
-  has_pem = _has_evolution_artifact()
-  if has_pgm and has_pem:
-    print("Found existing generation/evolution checkpoints in trained_models/. Skipping training stage.")
-    return
+  train_ftsdiffusion_recognition(fts, store_model, max_iters=recognition_max_iters)
+  # Always run generation/evolution and save timestamped checkpoints.
+  has_pgm = False
+  has_pem = False
   dataloader_pgm, dataloader_pem = get_training_data(train_test_split)
   if has_pgm:
     print("Found existing generation checkpoint. Skipping generation training.")
   else:
-    train_ftsdiffusion_generation(dataloader_pgm, device, store_model)
+    train_ftsdiffusion_generation(dataloader_pgm, device, store_model, n_epochs=generation_epochs)
   if has_pem:
     print("Found existing evolution checkpoint. Skipping evolution training.")
   else:
-    train_ftsdiffusion_evolution(dataloader_pem, device, store_model)
+    train_ftsdiffusion_evolution(dataloader_pem, device, store_model, n_epochs=evolution_epochs)
 
 
 def _has_recognition_artifacts():
@@ -73,14 +74,16 @@ def _has_evolution_artifact():
   return os.path.exists(filepath) or os.path.exists(filepath + '.pth')
 
 
-def train_ftsdiffusion_recognition(fts, store_model=True):
+def train_ftsdiffusion_recognition(fts, store_model=True, max_iters=None):
   """ Train the pattern recognition module in FTS-Diffusion """
   dataname = prm_params['dataname']
+  if max_iters is None:
+    max_iters = prm_params['max_iters']
   _ = train_recognition_module(
     fts, dataname=dataname,
     n_clusters=prm_params['k'],
     l_min=prm_params['l_min'], l_max=prm_params['l_max'],
-    max_iters=prm_params['max_iters'],
+    max_iters=max_iters,
     init_strategy=prm_params['init_strategy'],
     barycenter=prm_params['barycenter'],
     plot_progress=False,
@@ -88,10 +91,11 @@ def train_ftsdiffusion_recognition(fts, store_model=True):
     store_res=store_model)
 
 
-def train_ftsdiffusion_generation(dataloader, device, store_model=True):
+def train_ftsdiffusion_generation(dataloader, device, store_model=True, n_epochs=None):
   """ Train the pattern generation module in FTS-Diffusion """
   pgm = build_pgm(device).to(device)
-  n_epochs = pgm_params['n_epochs']
+  if n_epochs is None:
+    n_epochs = pgm_params['n_epochs']
   lr = pgm_params['lr']
   loss_weights = pgm_params['loss_weights']
   pad_weight = pgm_params['pad_weight']
@@ -111,10 +115,11 @@ def train_ftsdiffusion_generation(dataloader, device, store_model=True):
     store_name=store_name)
 
 
-def train_ftsdiffusion_evolution(dataloader, device, store_model=True):
+def train_ftsdiffusion_evolution(dataloader, device, store_model=True, n_epochs=None):
   """ Train the pattern evolution module in FTS-Diffusion """
   pem = build_pem(device).to(device)
-  n_epochs = pem_params['n_epochs']
+  if n_epochs is None:
+    n_epochs = pem_params['n_epochs']
   lr = pem_params['lr']
   loss_weights = pem_params['loss_weights']
   store_name = get_pem_name()
