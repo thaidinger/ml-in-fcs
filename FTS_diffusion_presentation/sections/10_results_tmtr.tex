@@ -1,9 +1,17 @@
-\section{Further experiments}
+\section{TMTR}
 
-\begin{frame}{TMTR: Train More, Test Real}
-\begin{alertblock}{Status}
-Experiment in progress. Figures will be inserted here once the runs complete.
-\end{alertblock}
+\begin{frame}{What the paper reports --- TMTR (Fig.~6a)}
+\centering
+\includegraphics[height=0.74\textheight]{figures/paper/fig6_tmtr.pdf}
+
+\vspace{1mm}
+{\footnotesize FTS-Diffusion paper (Yu et al., ICLR 2024), Fig.~6(a): TMTR prediction
+error (MAPE) vs.\ synthetic proportion --- FTS-Diffusion vs.\ RCGAN/TimeGAN/CSDI on
+S\&P 500, GOOG and ZC$=$F.}
+\note{The published TMTR result. FTS-Diffusion keeps MAPE roughly flat as the synthetic proportion rises to 100\%, whereas the baselines degrade --- the paper's evidence that the FTS-Diffusion samples are close enough to real data to substitute for it.}
+\end{frame}
+
+\begin{frame}{TMTR: Train on Mixture, Test on Real}
 
 \vspace{4mm}
 \centering

@@ -1,5 +1,16 @@
 \section{TATR results: protocol comparisons}
 
+\begin{frame}{What the paper reports --- TATR (Fig.~6b)}
+\centering
+\includegraphics[width=0.74\textwidth]{figures/paper/fig6_tatr.pdf}
+
+\vspace{1.5mm}
+{\footnotesize FTS-Diffusion paper (Yu et al., ICLR 2024), Fig.~6(b): TATR prediction
+error (MAPE) vs.\ augmented size --- FTS-Diffusion and three baselines (RCGAN, TimeGAN,
+CSDI) on S\&P 500, GOOG and ZC$=$F. Dashed line $=$ year-0 MAPE.}
+\note{The published TATR result, shown before our replication. The paper reports that FTS-Diffusion keeps the downstream MAPE flat or slightly below the year-0 baseline as the augmented size grows (headline $-17.9\%$), while the GAN/diffusion baselines drift up. This is the reference the next slides are compared against --- and note that our re-runs do \emph{not} reproduce the flat curve under the authors' protocol.}
+\end{frame}
+
 % ============================ S&P 500 ============================
 \begin{frame}{S\&P 500, $K=14$: authors vs split}
 \begin{columns}[onlytextwidth,T]

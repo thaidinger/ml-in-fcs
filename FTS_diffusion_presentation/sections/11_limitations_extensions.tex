@@ -1,67 +1,23 @@
-\section{Methodological observations}
 
-\begin{frame}{Reproducibility issues uncovered}
-\begin{itemize}\setlength\itemsep{4pt}
-  \item \textbf{Hard-coded LSTM warm-up.}
-        \texttt{init\_period = 252*5} in the downstream LSTM assumes 5 years of trading days.
-        Breaks silently for GOOG and ZC$=$F (insufficient history); both run but evaluate the LSTM in its warm-up regime.
-  \item \textbf{Device mismatch in \texttt{train\_evolution\_module}.}
-        Target tensors are not moved to GPU. Forward stays on CPU even with a CUDA model; training is $8$--$10\times$ slower and the optimiser trajectory differs.
-  \item \textbf{$x$-range multiplier in \texttt{plot\_downstream\_tatr}.}
-        Augmentation axis multiplied by 10 in plotting; mis-labels ``$10\times$'' as ``$100\times$''.
-  \item \textbf{Under-specified synthetic-data protocol} --- the paper does not pin down ``authors'' vs.\ continuous-chain rollout (split).
-\end{itemize}
-\note{Four issues. The LSTM warm-up bug is silent: nothing crashes, but the model is under-trained on two of three assets. The device-mismatch issue costs an order of magnitude in wall time. The plot multiplier shifts the axis without warning. Together with the protocol question, these four points explain most of the gap between our numbers and the published numbers.}
-\end{frame}
 
 
 \section{Methodological observations}
 
-\begin{frame}{Why exact reproduction was difficult}
-\begin{itemize}\setlength\itemsep{5pt}
-  \item \textbf{Synthetic-data protocol is under-specified.}
-        The paper does not fully specify whether synthetic paths are generated as
-        independent segments, one continuous chain, or a continuous chain later split
-        into evaluation blocks.
-
-  \item \textbf{Downstream split is not portable across assets.}
-        The released downstream LSTM uses \texttt{init\_period = 252*5}.
-        This is compatible with the S\&P 500 setup, but GOOG and ZC$=$F do not
-        have enough held-out history under the same split. Any valid GOOG/ZC$=$F
-        run therefore requires an adapted protocol.
-
-  \item \textbf{GPU training path requires a patch.}
-        In \texttt{train\_evolution\_module}, target tensors are not moved to the
-        model device. On CUDA this creates a device mismatch, so the intended GPU
-        path is not directly reproducible without modifying the code.
-
-  \item \textbf{Published trends are sensitive to protocol choices.}
-        Our experiments show that changing the synthetic rollout protocol can
-        materially change the TATR trend, even with the same assets and similar
-        hyperparameters.
-\end{itemize}
-
-\note{
-Main message: this is not just a matter of random seeds. The released code and
-paper leave several degrees of freedom that materially affect the result. The
-most important one is the synthetic generation protocol.
-}
-\end{frame}
 
 
-\begin{frame}{Markov-chain stationarity}
-\begin{block}{Setup}
-PEM defines a Markov chain over $s_m=(p_m,\alpha_m,\beta_m)$. Stationarity would require a fixed invariant $\pi$ with $\pi^\top T = \pi^\top$.
-\end{block}
-\begin{itemize}\setlength\itemsep{2pt}
-  \item Empirical $T$ (per asset, per $K$) is right-stochastic; principal left-eigenvector gives $\pi$.
-  \item Stationarity check: simulate long chains, monitor $\|\hat\pi_t-\pi\|_1$ over time.
-  \item Drift check: compare mean motif occupancy in real vs.\ synthetic across the chain.
-\end{itemize}
-\begin{alertblock}{Open question --- empirical burn-in}
-Under the \texttt{split} protocol, no clear stationarity is reached within one simulated year. How many segments of burn-in are needed before the chain forgets its init state? Not answered here.
-\end{alertblock}
-\note{We did produce the MC figures (\texttt{figures/mc\_analysis/}) but did not estimate a burn-in numerically. That is the natural next step.}
+\begin{frame}{The generation collapses to a single motif}
+\framesubtitle{Every 252-day block is the same pattern --- the synthetic data is not reliable}
+\centering
+\includegraphics[width=0.96\textwidth]{figures/diagnosis/goog_pattern_repetition.pdf}
+
+\vspace{1mm}
+{\footnotesize
+First two blocks of the synthetic GOOG paths (5 runs). Each 252-day block is an
+\alert{identical copy} of the previous one: under \texttt{authors} the chain resets and
+replays the same motif, under \texttt{split} it tiles it continuously --- the generator
+emits \alert{one motif forever}. The rising downstream MAPE reflects this degenerate
+synthetic data, not the protocol.}
+\note{The point of this slide: the generated pattern is always the same. Verified on the team's saved trajectories. On GOOG $K=11$ the PEM alternates just two patterns (each exactly 50\% of 2520 segments); on S\&P 500 $K=14$ it emits a single pattern in 99.6\% of segments. The PGM decoder (a 1-hidden-unit LSTM) produces an identical segment for every conditioning pattern --- an up-trend pattern and a down-trend pattern give the same output. Cause: the \texttt{argmax} rollout in \texttt{state\_evolution\_ftsdiffusion} and \texttt{sae\_hidden\_dim=1} in \texttt{model\_params.py} --- both in the authors' released code/design, not in our experiment scripts. Full write-up: \texttt{GENERATION\_FAILURE\_ANALYSIS.md}.}
 \end{frame}
 
 \section{Limitations and Extensions}
@@ -123,29 +79,6 @@ The learned transition is essentially a compressed state evolution:
 \mapsto
 (p_{m+1},\alpha_{m+1},\beta_{m+1}).
 \]
-
-\end{frame}
-
-
-\begin{frame}{Limitation 3: realism does not imply no artificial alpha}
-\framesubtitle{Stylized facts are necessary but not sufficient}
-
-The paper evaluates whether synthetic series resemble real data through distributional tests,
-stylized facts, and downstream prediction experiments.
-
-\medskip
-
-\begin{block}{Remaining concern}
-A synthetic generator can match heavy tails and volatility clustering, while still introducing
-\alert{systematic predictable drift} under a simple trading signal.
-\end{block}
-
-\begin{itemize}
-\item Good marginal fit does not guarantee correct conditional dynamics.
-\item Prediction experiments may depend on the model architecture used for evaluation.
-\item Leakage is possible if motif extraction or scaling is fitted using future data.
-\item A generator useful for augmentation should not create spurious predictability.
-\end{itemize}
 
 \end{frame}
 
@@ -333,36 +266,6 @@ Move beyond distribution matching:
 \end{frame}
 
 
-\begin{frame}{Takeaway}
 
-\begin{block}{Main limitation}
-FTS-Diffusion is strong at generating realistic local motif-based financial paths, but its guarantees are mostly empirical and distributional.
-\end{block}
-
-\begin{block}{Main extension}
-Add a fixed no-predictable-drift diagnostic and, optionally, a drift penalty:
-\[
-\text{realistic synthetic data}
-\quad + \quad
-\text{no artificial predictability}.
-\]
-\end{block}
-
-\medskip
-
-This gives a cleaner benchmark for deciding whether synthetic financial time series are useful for augmentation rather than merely visually or marginally realistic.
-
-\end{frame}
-
-
-
-% --- Slide: Conclusion ---
-\begin{frame}{Conclusion}
-    \begin{itemize}
-        \item FTS-Diffusion addresses the core challenges of irregularity and scale-invariance in financial data.
-        \item SISC allows for clustering recurring market ``shapes'' effectively.
-        \item The model demonstrates superior performance in preserving statistical properties compared to TimeGAN and QuantGAN.
-    \end{itemize}
-\end{frame}
 
 
