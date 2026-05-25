@@ -1,0 +1,27 @@
+{
+  "run_id": 16,
+  "repo_root": "/iopsstor/scratch/cscs/course_00241/fts-diffusion/fts-diffusion-sp500-hpc",
+  "output_dir": "/iopsstor/scratch/cscs/course_00241/fts-diffusion/fts-diffusion-sp500-hpc/hpc-implementation/results/sp500_hpc_full",
+  "device": "cuda:0",
+  "settings": {
+    "repo_root": "/iopsstor/scratch/cscs/course_00241/fts-diffusion/fts-diffusion-sp500-hpc",
+    "output_dir": "/iopsstor/scratch/cscs/course_00241/fts-diffusion/fts-diffusion-sp500-hpc/hpc-implementation/results/sp500_hpc_full",
+    "run_id": 16,
+    "experiment": "both",
+    "datatype": "prices",
+    "epochs": 100,
+    "hidden_dim": 32,
+    "window_size": 64,
+    "ahead": 1,
+    "loss": "mae",
+    "tatr_augmentations": 100,
+    "tatr_protocol": "continuous_chunked",
+    "tmtr_proportions": 10,
+    "aug_length": 252,
+    "mix_length": 1260,
+    "seed_base": 42,
+    "torch_threads": 8,
+    "epoch_log_interval": 25
+  },
+  "elapsed_seconds": 256.16
+}
