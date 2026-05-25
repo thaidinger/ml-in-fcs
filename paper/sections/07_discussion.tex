@@ -1,0 +1,41 @@
+\section{Discussion}
+\label{sec:discussion}
+
+% Target: 0.5 page (~400 words).
+% Sources: GENERATION_FAILURE_ANALYSIS.md §Claims that need more evidence
+% before publication; §Alternative hypotheses.
+
+\subsection{What we do not claim}
+\label{sec:discussion:notclaim}
+
+% Be explicit:
+% - We do not claim FTS-Diffusion as a method is fundamentally broken. The
+%   stronger claim requires (i) confirming the degeneracy survives
+%   sae_hidden_dim ablation (H3), (ii) seed sensitivity (H2), and (iii)
+%   author confirmation that the released config is what produced the
+%   paper's results.
+% - We report H1 (full-budget retraining) outcome. If H1 indicates that
+%   degeneracy survives the full budget, the claim is that "the released
+%   configuration is structurally degenerate", not that "no configuration of
+%   the architecture can work."
+
+\subsection{Author contact}
+\label{sec:discussion:contact}
+
+% \todo{Update once author reply lands. If they confirm sae_hidden_dim=1 was
+% the configuration used for the paper's headline results, that strengthens
+% the reproducibility claim. If they indicate a different configuration was
+% used, our finding becomes "the released artifacts do not match what was
+% published — please update the release."}
+
+\subsection{Limitations}
+\label{sec:discussion:limits}
+
+% - Single-asset focus for the most expensive experiments (H1 on S&P 500
+%   only); GOOG/ZC=F results use 30-epoch checkpoints.
+% - We did not run multi-seed sensitivity (H2) in time; appendix reports a
+%   smaller version if available.
+% - Our stress-test framework (§6) is validated on two generators; broader
+%   validation across the financial-TS generator landscape is future work.
+% - We focus on price-level synthetic series, mirroring the paper's setup;
+%   conclusions may differ for returns-level or log-returns-level setups.

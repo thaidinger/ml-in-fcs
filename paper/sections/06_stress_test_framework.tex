@@ -1,0 +1,50 @@
+\section{Stress Tests That Catch the Degeneracy}
+\label{sec:stress}
+
+% STRETCH SECTION. Target: 1.25 pages (~1000 words).
+% Decision gate: end of week 2. If §5 experiments aren't landed by then, CUT
+% this section, expand §5 to fill the page budget, and move this material to
+% appendix as "Future work / proposed evaluations."
+
+\todo{This section is optional (stretch \S6 per the experiment checklist). Go/no-go
+by end of week 2 based on whether \S\ref{sec:blindness} experiments are landed.
+If cut, move this content to the appendix.}
+
+\subsection{Pattern-distribution divergence}
+\label{sec:stress:pdiv}
+
+% Source: E7. Run SISC on the synthetic output, get the (pattern, length,
+% magnitude) histogram, compare to the real-data histogram via JSD or KL.
+% Threshold: the real-data distribution is roughly uniform over K patterns;
+% any synthetic generator concentrated on <3 patterns fails.
+
+\subsection{Pattern-transition entropy}
+\label{sec:stress:tentropy}
+
+% Source: E9. Compute H(p_{t+1} | p_t) over the synthetic pattern chain.
+% On real data: typically > 1 bit. On a collapsed PEM: near 0 bits.
+% This is the diagnostic that most directly catches the PEM argmax
+% collapse described in §4.
+
+\subsection{Volatility autocorrelation decay}
+\label{sec:stress:vol}
+
+% Source: E10. Fit an exponential decay to the autocorrelation of |returns|.
+% The paper claims this should be slowly decaying ("stylized fact"); a linear
+% ramp has near-zero autocorrelation at all lags. Quantify and table.
+
+\subsection{Validation: the stress tests on a second generator}
+\label{sec:stress:validation}
+
+% Source: E11. Apply the three metrics to TimeGAN's output. Argue they
+% distinguish "degenerate" from "non-degenerate" generators without being
+% specific to FTS-Diffusion's particular failure mode.
+
+\begin{table}[t]
+  \centering
+  \todo{Table: proposed metrics evaluated on real data, FTS-Diffusion (ours),
+  TimeGAN, linear-ramp. Columns: metric, real, FTS-Diff, TimeGAN, ramp.}
+  \caption{Proposed stress-test metrics across generators. \todo{Fill from
+  E9--E11.}}
+  \label{tab:stress}
+\end{table}

@@ -1,0 +1,99 @@
+\section{Evaluation Blindness: When the Metrics Don't See the Failure}
+\label{sec:blindness}
+
+% Target: 2.5 pages (~2000 words). Experimental backbone of the paper.
+% Sources: E1, E2, E5 (H1 update), E6 (TimeGAN), E7 (pattern dist), E8 (per-asset).
+
+\subsection{The setup}
+\label{sec:blindness:setup}
+
+% Run the paper's evaluation pipeline on three generators:
+% 1. Released FTS-Diffusion (our 30-epoch checkpoints; same data path as paper).
+% 2. Released FTS-Diffusion at full-budget retraining (H1; if available).
+% 3. A controlled degenerate baseline: a literal linear-ramp generator
+%    interpolating from train-set start price to train-set end price, plus
+%    a small iid Gaussian noise so returns are well-defined (E2). This is
+%    the minimum-content synthetic any reasonable metric should reject.
+% 4. TimeGAN (E6) as an alternate-generator reference point.
+% Apply: KS test, AD test, TMTR MAPE sweep, TATR MAPE sweep. All assets.
+
+\subsection{Distribution tests pass on degenerate generators}
+\label{sec:blindness:dist}
+
+\begin{table}[t]
+  \centering
+  \todo{Table replicating the paper's Table~1 layout. Columns: model,
+  KS(S\&P\,500), AD(S\&P\,500), KS(GOOG), AD(GOOG), KS(ZC=F), AD(ZC=F).
+  Rows: paper-reported FTS-Diffusion, our FTS-Diffusion (30ep), our
+  FTS-Diffusion (H1 400ep), TimeGAN (ours), linear-ramp baseline. Numbers
+  from E1 + E2.}
+  \caption{Goodness-of-fit tests on return distributions. Higher is better
+  (capped at 0.25 for AD, 1.0 for KS as in the original paper). \todo{Fill
+  from E1/E2.}}
+  \label{tab:ks_ad}
+\end{table}
+
+% Interpretation paragraph:
+% Two findings, both surprising:
+% - Our 30-epoch FTS-Diffusion does/does not (E1 to fill) reach the paper's
+%   reported KS/AD values. \todo{Honest write-up depending on what E1 shows.}
+% - The linear-ramp baseline reaches KS/AD values of \todo{NUMBER from E2}
+%   on S&P 500, which is/is not below the paper's RCGAN baseline.
+%   If above: the metric is so coarse that a deterministic linear interpolation
+%   beats a non-trivial GAN baseline — the metric is not measuring what the
+%   paper claims it measures.
+
+\subsection{Downstream MAPE is dominated by the asset's own trend}
+\label{sec:blindness:tatr}
+
+% TATR result analysis from E1 + E8 + raw_2/ HPC data:
+% - On S&P 500 (upward-trending asset), augmenting with the linear-ramp
+%   baseline produces MAPE reductions comparable to the paper's FTS-Diffusion
+%   numbers (test this — see E2).
+% - On GOOG (less trending) and ZC=F (mean-reverting), the same baseline
+%   does/doesn't (E8) produce similar reductions.
+% This isolates the metric blindness: TATR rewards synthetic data that has the
+% right end-to-end drift, regardless of whether it has any pattern content.
+
+\begin{figure}[t]
+  \centering
+  \todo{Figure: per-asset TATR curves overlaying FTS-Diffusion (ours,
+  30 and 400ep), TimeGAN, and linear-ramp baseline. Mirror the paper's Fig 6b
+  layout. Source: \texttt{raw\_2/raw\_2/tatr\_run\_*.csv} + new linear-ramp
+  runs from E2.}
+  \caption{TATR MAPE curves across three assets and four generators.
+  \todo{Replace.}}
+  \label{fig:tatr}
+\end{figure}
+
+\subsection{TMTR consistency is also asset-dependent}
+\label{sec:blindness:tmtr}
+
+% The paper claims TMTR MAPE is "remarkably consistent across all mixing
+% proportions" for FTS-Diffusion. Our HPC runs (raw_2/) show MAPE varying
+% by 2–3× across the 0%–40% range. Apply the same metric to the linear-ramp
+% baseline; if it also satisfies "remarkably consistent" — by, e.g., adding
+% noise that doesn't disturb the LSTM — the metric is even less discriminative.
+
+\begin{figure}[t]
+  \centering
+  \todo{Figure: TMTR MAPE-vs-proportion curves, same layout as paper Fig 6a,
+  overlaying FTS-Diffusion (ours), TimeGAN, linear-ramp baseline.}
+  \caption{TMTR results. \todo{Replace.}}
+  \label{fig:tmtr}
+\end{figure}
+
+\subsection{Where the blindness comes from}
+\label{sec:blindness:why}
+
+% Brief interpretive paragraph (~150 words):
+% Three reasons the paper's metrics fail to flag degeneracy:
+% 1. KS/AD test the *marginal* return distribution but ignore temporal
+%    structure; a degenerate generator producing iid small returns can
+%    match the marginal as well as any model.
+% 2. The LSTM downstream model's MAPE on a trending asset is dominated by
+%    the price-level drift; synthetic data with the right drift is
+%    "useful" by this metric regardless of micro-structure.
+% 3. The TMTR consistency check is one-dimensional — a constant-MAPE flat
+%    line can be produced by a synthetic that just doesn't disturb the
+%    LSTM's prior, not by a synthetic that adds signal.
