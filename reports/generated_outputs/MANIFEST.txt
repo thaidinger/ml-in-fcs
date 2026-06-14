@@ -49,5 +49,24 @@ Top level
 - 16_b3_sisc_sweep/
   Timed B.3 sweep across seeds, l_max choices, and iteration counts.
 
+04_presentation_figures/
+- README.md
+- manifest.json
+- 01_replication_story_map.{png,pdf}
+- 02_tatr_protocol_contrast.{png,pdf}
+- 03_tatr_summary_bars.{png,pdf}
+- 04_b3_metric_gap.{png,pdf}
+- 05_b3_sweep_frontier.{png,pdf}
+- 06_real_asset_sisc_pattern_summary.{png,pdf}
+- 07_experiment_coverage_grid.{png,pdf}
+- 08_pattern_forward_diffusion_goog.{png,pdf}
+- 09_pattern_reverse_denoising_schematic.{png,pdf}
+- 10_pattern_diffusion_mechanism.{png,pdf}
+- 11_pattern_forward_diffusion_goog.gif
+- 12_pattern_conditioned_diffusion_story.gif
+- 12_pattern_conditioned_diffusion_matched_endpoint.{png,pdf}
+- 13_specific_segment_diffusion_goog_idx000.gif
+- specific_segment_diffusion_manifest.json
+
 Removed stale content
 - All `.DS_Store` files under reports/generated_outputs

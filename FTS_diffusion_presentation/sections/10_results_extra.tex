@@ -1,0 +1,27 @@
+\section{Further experiments}
+
+\begin{frame}{TMTR: Train More, Test Real}
+\begin{alertblock}{Status}
+Experiment in progress. Figures will be inserted here once the runs complete.
+\end{alertblock}
+
+\vspace{4mm}
+\centering
+\fbox{\parbox[c][5cm][c]{0.78\textwidth}{\centering\itshape figure slot: TMTR per-asset summary}}
+
+% \includegraphics[width=0.78\textwidth]{figures/tmtr/sp500/k14/authors/final_enhanced.pdf}
+\note{TMTR augments the training set with synthetic FTS-Diffusion samples and evaluates a downstream predictor on the real held-out years. The metric is the same MAPE as in TATR.}
+\end{frame}
+
+\begin{frame}{5-day-ahead forecasting}
+\begin{alertblock}{Status}
+Experiment in progress. No numerical results to report yet.
+\end{alertblock}
+
+\vspace{4mm}
+\centering
+\fbox{\parbox[c][5cm][c]{0.78\textwidth}{\centering\itshape figure slot: 5-day-ahead MAPE / hit-rate}}
+
+% \includegraphics[width=0.78\textwidth]{figures/forecast/sp500/k14/authors/final_enhanced.pdf}
+\note{Short-horizon forecasting test: use the generative model to roll out 5 future days and compare against the real series. Different metric from TATR (point error rather than distributional).}
+\end{frame}

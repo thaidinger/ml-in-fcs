@@ -1,0 +1,327 @@
+\section{SISC: three animated steps}
+
+\begin{frame}<1-2>{DTW: Align in time before measuring distance}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.56\textwidth}
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[font=\footnotesize]
+  \draw[->,thin,GraySoft] (-0.2,0) -- (6.6,0) node[right,font=\scriptsize]{$t$};
+  \draw[->,thin,GraySoft] (-0.2,0) -- (-0.2,3.2) node[above,font=\scriptsize]{value};
+
+  % Define exact coordinate paths for both sequences
+  \path
+    (0.0,1.3) coordinate (A0) (0.5,1.6) coordinate (A1) (1.0,2.2) coordinate (A2)
+    (1.5,2.7) coordinate (A3) (2.0,2.2) coordinate (A4) (2.5,1.6) coordinate (A5)
+    (3.0,1.2) coordinate (A6) (3.5,0.9) coordinate (A7) (4.0,1.0) coordinate (A8)
+    (4.5,1.3) coordinate (A9) (5.0,1.5) coordinate (A10) (5.5,1.7) coordinate (A11)
+    (6.0,1.5) coordinate (A12);
+
+  \path
+    (0.0,1.1) coordinate (B0) (0.5,1.3) coordinate (B1) (1.0,1.4) coordinate (B2)
+    (1.5,1.5) coordinate (B3) (2.0,1.7) coordinate (B4) (2.5,2.1) coordinate (B5)
+    (3.0,2.6) coordinate (B6) (3.5,3.0) coordinate (B7) (4.0,2.6) coordinate (B8)
+    (4.5,2.0) coordinate (B9) (5.0,1.5) coordinate (B10) (5.5,1.2) coordinate (B11)
+    (6.0,1.0) coordinate (B12);
+
+  % Overlay 1: Strict Pointwise (Euclidean) Alignment
+  \only<1>{
+    \foreach \i in {0,...,12} {
+      \draw[Coral!80,dashed,thick] (A\i) -- (B\i);
+    }
+    \node[Coral,font=\scriptsize,anchor=north] at (3.0,-0.15) {Pointwise: Strict $t_i \leftrightarrow t_i$ matching penalizes shifts};
+  }
+
+  % Overlay 2: DTW Monotone Alignment
+  \only<2>{
+    % Simulating a typical DTW warping path mapping peaks/valleys
+    \foreach \a/\b in {0/0, 1/1, 2/2, 3/3, 3/4, 3/5, 3/6, 3/7, 4/8, 5/9, 6/10, 7/11, 8/11, 9/11, 10/11, 11/12, 12/12} {
+      \draw[NavyBlue!60,dashed,thick] (A\a) -- (B\b);
+    }
+    \node[NavyBlue,font=\scriptsize,anchor=north] at (3.0,-0.15) {DTW: One-to-many matching aligns morphological features};
+  }
+
+  % Draw continuous curves with explicit sequence points (marks)
+  \draw[NavyBlue,thick,line cap=round,mark=*,mark size=1.2pt] plot[smooth] coordinates {
+    (A0)(A1)(A2)(A3)(A4)(A5)(A6)(A7)(A8)(A9)(A10)(A11)(A12)};
+  \draw[Coral,thick,line cap=round,mark=*,mark size=1.2pt] plot[smooth] coordinates {
+    (B0)(B1)(B2)(B3)(B4)(B5)(B6)(B7)(B8)(B9)(B10)(B11)(B12)};
+
+  \node[NavyBlue,font=\scriptsize,anchor=west] at (1.6,2.95) {series $A$ (peak early)};
+  \node[Coral,font=\scriptsize,anchor=west]    at (3.6,3.25) {series $B$ (peak late)};
+\end{tikzpicture}}\\[2mm]
+
+\only<1>{\scriptsize \textbf{Euclidean Distance} rigidly compares values at identical time indices, ignoring phase shifts entirely.}
+\only<2>{\scriptsize \textbf{DTW} calculates the optimal monotone alignment of the two series, then measures distance along that warped path.}
+\end{column}
+
+\begin{column}{0.42\textwidth}
+\vspace{0.4cm}
+\begin{itemize}\setlength\itemsep{8pt}
+  
+  \item<1-> \textbf{The Solution:} DTW permits non-linear mapping, concluding \emph{``same shape, just stretched in time''} $\to$ small distance.
+  \item<2-> \textbf{Application:} This property is exactly what we need for financial motifs that recur with varying durations.
+\end{itemize}
+\end{column}
+\end{columns}
+
+\note{Slide 1: Show the problem with Pointwise distance—vertical dashed lines show huge errors when peaks don't line up. Slide 2: Show the DTW solution—the lines "warp" to connect the early peak in A to the late peak in B.}
+\end{frame}
+\def\TSPATH{(0,1.0) (0.4,1.3) (0.8,1.55) (1.2,1.25) (1.6,0.9) (2.0,1.1)
+            (2.4,1.45) (2.8,1.9) (3.2,2.05) (3.6,1.7) (4.0,1.3) (4.4,1.0)
+            (4.8,1.25) (5.2,1.6) (5.6,1.85) (6.0,1.5) (6.4,1.15) (6.8,1.4)
+            (7.2,1.8) (7.6,2.15) (8.0,1.95) (8.4,1.55) (8.8,1.25) (9.2,1.45)
+            (9.6,1.75) (10.0,1.4) (10.4,1.05) (10.8,1.3) (11.2,1.7) (11.6,1.5)
+            (12.0,1.2)}
+
+\begin{frame}{SISC, Step 1: Initializing centroids (K-means++ for DTW)}
+\vspace{-2mm}
+\centering
+\begin{tikzpicture}[font=\footnotesize,scale=0.74,every node/.append style={transform shape}]
+
+  \node[anchor=west,font=\scriptsize\bfseries,NavyBlue] at (-0.4,3.55) {observed series $X$ (candidate windows shaded in coral)};
+  \draw[thick,NavyDeep,line cap=round] plot[smooth] coordinates \TSPATH;
+  \draw[->,thin,GraySoft] (-0.1,0.6) -- (12.3,0.6) node[right,font=\scriptsize]{$t$};
+
+  \def\Wone{1.6}    \def\WoneCol{TealAcc}
+  \def\Wtwo{3.0}    \def\WtwoCol{Coral}
+  \def\Wthr{6.4}    \def\WthrCol{NavyBlue}
+  \def\Wfour{9.4}   \def\WfourCol{TealSoft!80!black}
+  \def\Wlen{1.6}
+
+  \foreach \x in {0.0,0.6,1.2,1.8,2.4,3.0,3.6,4.2,4.8,5.4,6.0,6.6,7.2,7.8,8.4,9.0,9.6,10.2}{
+    \draw<3-6>[GraySoft!40,thin] (\x,0.7) rectangle (\x+\Wlen,2.3);
+  }
+  \foreach \x/\h in {0.0/15, 0.6/25, 1.2/10, 1.8/35, 2.4/55, 3.0/15,
+                     3.6/30, 4.2/70, 4.8/45, 5.4/30, 6.0/55, 6.6/45,
+                     7.2/40, 7.8/75, 8.4/55, 9.0/80, 9.6/45, 10.2/30}{
+     \fill<3>[Coral,opacity=0.\h] (\x,0.7) rectangle (\x+\Wlen,2.3);
+  }
+  \foreach \x/\h in {0.0/12, 0.6/22, 1.2/8, 1.8/15, 2.4/35, 3.0/10,
+                     3.6/30, 4.2/40, 4.8/25, 5.4/12, 6.0/55, 6.6/40,
+                     7.2/35, 7.8/70, 8.4/40, 9.0/60, 9.6/35, 10.2/25}{
+     \fill<5>[Coral,opacity=0.\h] (\x,0.7) rectangle (\x+\Wlen,2.3);
+  }
+  \foreach \x/\h in {0.0/10, 0.6/15, 1.2/8, 1.8/12, 2.4/30, 3.0/10,
+                     3.6/20, 4.2/30, 4.8/20, 5.4/10, 6.0/30, 6.6/25,
+                     7.2/25, 7.8/45, 8.4/30, 9.0/50, 9.6/25, 10.2/20}{
+     \fill<6>[Coral,opacity=0.\h] (\x,0.7) rectangle (\x+\Wlen,2.3);
+  }
+
+  \draw<2->[draw=\WoneCol,line width=1.2pt,fill=\WoneCol,fill opacity=0.18]
+        (\Wone,0.7) rectangle (\Wone+\Wlen,2.3);
+  \draw<4->[draw=\WtwoCol,line width=1.2pt,fill=\WtwoCol,fill opacity=0.18]
+        (\Wtwo,0.7) rectangle (\Wtwo+\Wlen,2.3);
+  \draw<6->[draw=\WthrCol,line width=1.2pt,fill=\WthrCol,fill opacity=0.18]
+        (\Wthr,0.7) rectangle (\Wthr+\Wlen,2.3);
+  \draw<7->[draw=\WfourCol,line width=1.2pt,fill=\WfourCol,fill opacity=0.22]
+        (\Wfour,0.7) rectangle (\Wfour+\Wlen,2.3);
+
+  % --- centroid slots, label placed to the FAR LEFT (no overlap with arrows) ---
+  \node[anchor=east,font=\scriptsize\bfseries,NavyBlue,align=right,text width=2.2cm]
+        at (-0.2,-2.45) {centroid slots\\$K=4$, length $\lmax$};
+  \foreach \i/\xc in {1/0.7, 2/3.5, 3/6.3, 4/9.1}{
+     \draw[thick,GraySoft,dashed,rounded corners=1pt]
+          (\xc,-3.0) rectangle (\xc+2.2,-1.9);
+     \node[font=\scriptsize,GraySoft] at ($(\xc+1.1,-3.25)$) {slot \i};
+  }
+  \draw<2->[\WoneCol,line width=1.2pt,fill=\WoneCol!18,rounded corners=1pt]
+       (0.7,-3.0) rectangle (2.9,-1.9);
+  \draw<2->[thick,\WoneCol,line cap=round] plot[smooth]
+       coordinates {(0.85,-2.5) (1.2,-2.2) (1.55,-2.4) (1.9,-2.7) (2.25,-2.45) (2.6,-2.15) (2.85,-2.4)};
+  \draw<4->[\WtwoCol,line width=1.2pt,fill=\WtwoCol!18,rounded corners=1pt]
+       (3.5,-3.0) rectangle (5.7,-1.9);
+  \draw<4->[thick,\WtwoCol,line cap=round] plot[smooth]
+       coordinates {(3.65,-2.7) (4.0,-2.4) (4.35,-2.2) (4.7,-2.45) (5.05,-2.7) (5.4,-2.5) (5.65,-2.25)};
+  \draw<6->[\WthrCol,line width=1.2pt,fill=\WthrCol!18,rounded corners=1pt]
+       (6.3,-3.0) rectangle (8.5,-1.9);
+  \draw<6->[thick,\WthrCol,line cap=round] plot[smooth]
+       coordinates {(6.45,-2.55) (6.8,-2.25) (7.15,-2.5) (7.5,-2.7) (7.85,-2.45) (8.2,-2.2) (8.45,-2.45)};
+  \draw<7->[\WfourCol,line width=1.2pt,fill=\WfourCol!18,rounded corners=1pt]
+       (9.1,-3.0) rectangle (11.3,-1.9);
+  \draw<7->[thick,\WfourCol,line cap=round] plot[smooth]
+       coordinates {(9.25,-2.7) (9.6,-2.5) (9.95,-2.25) (10.3,-2.4) (10.65,-2.65) (11.0,-2.5) (11.25,-2.3)};
+
+  % --- arrows: shorter bend so they don't sweep through label region ---
+  \draw<2->[->,thick,\WoneCol]  (\Wone+\Wlen/2,0.7)  to[bend right=22] (1.8,-1.9);
+  \draw<4->[->,thick,\WtwoCol]  (\Wtwo+\Wlen/2,0.7)  to[bend right=22] (4.6,-1.9);
+  \draw<6->[->,thick,\WthrCol]  (\Wthr+\Wlen/2,0.7)  to[bend right=22] (7.4,-1.9);
+  \draw<7->[->,thick,\WfourCol] (\Wfour+\Wlen/2,0.7) to[bend right=22] (10.2,-1.9);
+\end{tikzpicture}
+
+\vspace{0.5mm}
+{\scriptsize\textbf{Sampling rule:}\;
+$\Pr\!\bigl(p_{k+1}=X[t:t+\lmax]\bigr)\;\propto\;\min_{k'\le k}\dtw\!\bigl(X[t:t+\lmax],\,p_{k'}\bigr).$}\\[-0.5mm]
+
+\only<1>{\footnotesize Step 0: $K=4$ centroids of fixed length $\lmax$ to be chosen.}
+\only<2>{\footnotesize Step 1: $p_1$ sampled uniformly from all length-$\lmax$ windows.}
+\only<3>{\footnotesize Step 2: candidate windows weighted by distance to $p_1$ (coral = far).}
+\only<4>{\footnotesize Step 3: $p_2$ sampled with prob.\ $\propto\dtw(\cdot,p_1)$.}
+\only<5>{\footnotesize Step 4: recompute weights against $\{p_1,p_2\}$.}
+\only<6>{\footnotesize Step 5: $p_3$ sampled with prob.\ $\propto \min_{k'\le 2}\dtw(\cdot,p_{k'})$.}
+\only<7>{\footnotesize Step 6: $p_4$ chosen; initialisation complete.}
+
+\note{K-means++ adapted to time-series subsequences with DTW. The first centroid is uniform. Each subsequent centroid is biased toward windows that are far from anything chosen so far. The coral shading represents the squared DTW distance to the current centroid set: brighter equals more likely to be picked. All initial centroids have the same length $\lmax$; variable lengths only appear after the greedy segmentation phase on the next slide.}
+\end{frame}
+
+\begin{frame}{SISC, Step 2: Greedy segmentation $+$ DBA centroid update}
+\vspace{-2mm}
+\centering
+\resizebox{0.98\textwidth}{!}{%
+\begin{tikzpicture}[font=\small]
+  \node[font=\scriptsize\bfseries,NavyBlue,anchor=west,align=left,text width=3.6cm]
+        at (0,3.6) {current centroids\\$P=\{p_1,\dots,p_4\}$};
+  \foreach \i/\xc/\c in {1/5.0/TealAcc, 2/6.7/Coral, 3/8.4/NavyBlue, 4/10.1/TealSoft!80!black}{
+     \draw[\c, line width=1pt, line cap=round] plot[smooth]
+        coordinates {($(\xc,3.5)$) ($(\xc+0.25,3.7)$) ($(\xc+0.55,3.55)$) ($(\xc+0.85,3.75)$) ($(\xc+1.15,3.6)$)};
+     \node[font=\scriptsize,\c] at ($(\xc+0.6,3.25)$) {$p_\i$};
+  }
+  \draw[thick,NavyDeep,line cap=round] plot[smooth] coordinates \TSPATH;
+  \draw[->,thin,GraySoft] (-0.1,0.55) -- (12.3,0.55) node[right,font=\scriptsize]{$t$};
+
+  \draw<2->[->,thick,Coral!90!black] (0.0,0.4) -- (0.0,2.3);
+  \foreach \l in {1.0,1.3,1.6}{
+     \draw<2>[GraySoft!50,thin] (0.0,2.4) -- (\l,2.4);
+  }
+  \node<2>[GraySoft,font=\scriptsize] at (1.0,2.55) {$l\in[\lmin,\lmax]$};
+  \draw<3>[Coral,line width=1pt] (0.0,2.4) -- (1.3,2.4);
+  \node<3>[Coral,font=\scriptsize] at (1.3,2.65) {$l^\star=1.3$};
+  \node<3>[NavyDeep,font=\tiny,anchor=west] at (3.0,2.85) {$l^\star = \mathrm{len}(x_m)/\mathrm{len}(\mathrm{centroid}(p_m))$, dimensionless ratio};
+  \fill<4->[Coral,opacity=0.18] (0.0,0.55) rectangle (1.3,2.3);
+  \draw<4->[Coral,thick] (0.0,0.55) rectangle (1.3,2.3);
+
+  \draw<5->[->,thick,Coral!90!black] (1.3,0.4) -- (1.3,2.3);
+  \draw<5-6>[GraySoft!50,thin] (1.3,2.4) -- (2.7,2.4);
+  \draw<6>[NavyBlue,line width=1pt] (1.3,2.4) -- (2.4,2.4);
+  \node<6>[NavyBlue,font=\scriptsize] at (2.4,2.7) {$l^\star=1.1$};
+  \fill<7->[NavyBlue,opacity=0.18] (1.3,0.55) rectangle (2.4,2.3);
+  \draw<7->[NavyBlue,thick] (1.3,0.55) rectangle (2.4,2.3);
+
+  \draw<8->[->,thick,Coral!90!black] (2.4,0.4) -- (2.4,2.3);
+  \fill<8->[TealAcc,opacity=0.18] (2.4,0.55) rectangle (3.8,2.3);
+  \draw<8->[TealAcc,thick] (2.4,0.55) rectangle (3.8,2.3);
+  \fill<8->[TealSoft!80!black,opacity=0.18] (3.8,0.55) rectangle (5.2,2.3);
+  \draw<8->[TealSoft!80!black,thick] (3.8,0.55) rectangle (5.2,2.3);
+  \fill<8->[Coral,opacity=0.18] (5.2,0.55) rectangle (6.4,2.3);
+  \draw<8->[Coral,thick] (5.2,0.55) rectangle (6.4,2.3);
+  \fill<8->[NavyBlue,opacity=0.18] (6.4,0.55) rectangle (8.0,2.3);
+  \draw<8->[NavyBlue,thick] (6.4,0.55) rectangle (8.0,2.3);
+
+  \node<2-3>[font=\scriptsize,GraySoft] at (8.0,-0.05) {$K\!\cdot\!(\lmax-\lmin+1)=168$ DTW evals per step};
+  \node<4-7>[font=\scriptsize,GraySoft] at (8.0,-0.05) {greedy: emit best $(l^\star,k^\star)$, advance};
+  \node<8->[font=\scriptsize,GraySoft]   at (8.0,-0.05) {variable-length segmentation continues};
+\end{tikzpicture}}
+
+\vspace{-1mm}
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[font=\small]
+  \path[use as bounding box] (-0.4,0) rectangle (15.8,2.9);
+  \node<9->[font=\footnotesize\bfseries,NavyBlue,anchor=west] at (-0.2,2.5) {cluster $C_k$ (members)};
+  \draw<9->[Coral,line width=0.9pt,line cap=round] plot[smooth] coordinates {(0,2.0) (0.4,2.25) (0.8,2.05) (1.2,2.35) (1.6,2.1)};
+  \draw<9->[Coral!80!black,line width=0.9pt,line cap=round] plot[smooth] coordinates {(0,1.6) (0.5,1.9) (1.0,1.7) (1.5,2.0) (2.0,1.65)};
+  \draw<9->[Coral!60!black,line width=0.9pt,line cap=round] plot[smooth] coordinates {(0,1.2) (0.3,1.4) (0.6,1.3) (0.9,1.5) (1.2,1.3) (1.5,1.55) (1.8,1.2)};
+  \draw<9->[Coral!40!black,line width=0.9pt,line cap=round] plot[smooth] coordinates {(0,0.8) (0.45,1.1) (0.9,0.9) (1.35,1.2) (1.8,0.85) (2.1,1.1)};
+  \draw<9->[Coral!90!black,line width=0.9pt,line cap=round] plot[smooth] coordinates {(0,0.4) (0.4,0.65) (0.8,0.5) (1.2,0.7) (1.6,0.4)};
+
+  \node<10->[font=\footnotesize\bfseries,NavyBlue,anchor=west] at (5.5,2.5) {DTW alignments};
+  \draw<10-11>[thin,GraySoft,->] (5.5,1.95) -- (10.0,1.95) node[font=\scriptsize,right]{centroid index};
+  \foreach \src/\dst in {0.4/5.7, 0.8/6.4, 1.2/7.0, 1.6/7.6,
+                          0.5/5.8, 1.0/6.6, 1.5/7.3, 2.0/8.0,
+                          0.3/5.6, 0.9/6.5, 1.5/7.4,
+                          0.45/5.8, 1.35/7.1, 1.8/7.9,
+                          0.4/5.7, 1.2/6.9, 1.6/7.7}{
+     \draw<10->[TealAcc!70,thin,opacity=0.55] (\src,1.4) to[bend left=12] (\dst,1.95);
+  }
+
+  \node<11->[font=\footnotesize\bfseries,Coral,anchor=west] at (5.5,1.1) {new centroid $p_k^{\text{new}}$ (DBA)};
+  \draw<11->[Coral,line width=1.8pt,line cap=round] plot[smooth] coordinates {(5.5,0.4) (6.0,0.7) (6.5,0.5) (7.0,0.8) (7.5,0.55) (8.0,0.85) (8.5,0.6) (9.0,0.9) (9.5,0.5)};
+
+  \node<12->[anchor=west,fill=NavyBlue!7,draw=NavyBlue,thick,rounded corners=2pt,inner sep=5pt,
+             text width=5.0cm,font=\scriptsize] at (10.4,1.4)
+    {\textbf{DBA (DTW Barycenter Averaging):} centroid is the \alert{average over aligned values}, not pointwise. It produces a barycenter of variable-length sequences in DTW space.\\[2pt]
+     $p_k^{\text{new}}=\displaystyle\argmin_p\sum_{x\in C_k}\dtw(x,p)^2$.};
+\end{tikzpicture}}
+
+\note{Top panel: greedy segmentation. With $K=14$ and $\lmax-\lmin+1=12$ this is 168 DTW evaluations per step. Expensive, but cheaper than the truly global optimum. $l^\star = \text{len}(x_m)/\text{len}(\text{centroid}(p_m))$ is the dimensionless length scale factor: each generated segment is rescaled in time by $l^\star$ so same-motif segments of different durations stay realistic (paper Appendix D.1). Bottom panel: DBA averages over DTW-aligned indices, not pointwise, so cluster members of different lengths can be combined.}
+\end{frame}
+
+\begin{frame}{SISC, Step 3: Iterate until convergence}
+\vspace{-3mm}
+\centering
+\begin{tikzpicture}[font=\small,
+   bx/.style={rectangle,rounded corners=3pt,draw=NavyBlue,thick,
+              fill=NavyBlue!4,minimum width=2.7cm,minimum height=1.3cm,align=center,
+              text=NavyDeep},
+   bxon/.style={rectangle,rounded corners=3pt,draw=Coral,line width=1.4pt,
+                fill=Coral!15,minimum width=2.7cm,minimum height=1.3cm,align=center,
+                text=NavyDeep},
+   arr/.style={-{Latex[length=2.6mm]},line width=1pt}]
+
+  \node[bx]  (seg) at (-3.7,0)  {\textbf{Segment}\\\footnotesize greedy sweep};
+  \node[bx]  (asg) at (0,0)     {\textbf{Assign}\\\footnotesize segment $\to$ closest $p_k$};
+  \node[bx]  (upd) at (3.7,0)   {\textbf{Update centroids}\\\footnotesize DBA per cluster};
+
+  % Highlight: <2> segment+assign together (one conceptual step), <3> update, <4-> resting between iterations
+  \node<2,6>[bxon] at (-3.7,0) {\textbf{Segment}\\\footnotesize greedy sweep};
+  \node<2,6>[bxon] at (0,0)    {\textbf{Assign}\\\footnotesize segment $\to$ closest $p_k$};
+  \node<3>[bxon] at (3.7,0){\textbf{Update centroids}\\\footnotesize DBA per cluster};
+
+  \draw[arr,NavyBlue] (seg) -- (asg);
+  \draw[arr,NavyBlue] (asg) -- (upd);
+  \draw[arr,NavyBlue] (upd) to[bend left=35] node[above,font=\scriptsize,NavyBlue]{iterate} (seg);
+
+  \node<3>[font=\scriptsize,Coral,below=2mm of upd] {old $\Rightarrow$ new centroid};
+  \draw<3>[GraySoft!50,line width=0.7pt,line cap=round] plot[smooth] coordinates {(3.0,-1.7) (3.4,-1.4) (3.8,-1.6) (4.2,-1.35) (4.6,-1.55)};
+  \draw<3>[Coral,line width=1.2pt,line cap=round]        plot[smooth] coordinates {(3.0,-1.85) (3.4,-1.55) (3.8,-1.75) (4.2,-1.5) (4.6,-1.7)};
+
+  % iteration counter (one tick per FULL cycle of seg+asg+upd)
+  \node[anchor=west,font=\scriptsize\bfseries,NavyBlue] at (5.6,1.3) {iterations left};
+  \node<1-3>[anchor=west,font=\Huge,Coral]   at (5.6,0.5) {20};
+  \node<4>[anchor=west,font=\Huge,Coral]     at (5.6,0.5) {19};
+  \node<5>[anchor=west,font=\Huge,Coral]     at (5.6,0.5) {12};
+  \node<6>[anchor=west,font=\Huge,Coral]     at (5.6,0.5) {\;8};
+  \node<7>[anchor=west,font=\Huge,TealAcc]   at (5.6,0.5) {\;8};
+
+  \node[anchor=west,font=\tiny,NavyBlue,align=left,text width=3.4cm] at (5.6,-0.3)
+        {one tick $=$ one full cycle\\(segment$+$assign) $+$ update};
+
+  % progress bar -- 1 segment per completed iteration
+  \draw[GraySoft!40,line width=4pt] (-3.7,-2.2) -- (3.7,-2.2);
+  \draw<4->[TealAcc,line width=4pt] (-3.7,-2.2) -- (-3.0,-2.2);
+  \draw<5->[TealAcc,line width=4pt] (-3.7,-2.2) -- (0.8,-2.2);
+  \draw<6->[TealAcc,line width=4pt] (-3.7,-2.2) -- (3.0,-2.2);
+  \draw<7->[TealAcc,line width=4pt] (-3.7,-2.2) -- (3.7,-2.2);
+
+  \node<6-7>[anchor=west,font=\scriptsize,NavyDeep] at (-3.7,-2.7) {assignments stable?};
+  \node<7>[anchor=west,font=\large,TealAcc] at (-1.3,-2.7) {\,\checkmark\ \textbf{converged}};
+\end{tikzpicture}
+
+\smallskip
+\only<1>{\footnotesize Step 0: 20-iteration budget, no work yet.}
+\only<2>{\footnotesize Iteration~1, phase: \emph{segment $+$ assign} (one conceptual step).}
+\only<3>{\footnotesize Iteration~1, phase: \emph{centroid update} (DBA). Counter still $20$.}
+\only<4>{\footnotesize End of iteration~1: full cycle complete, budget ticks to $19$.}
+\only<5>{\footnotesize Fast-forward several iterations: shifts shrink, budget reaches $12$.}
+\only<6>{\footnotesize Stability check: are assignments unchanged across cycles?}
+\only<7>{\footnotesize \alert{Convergence.} Stops on stable assignments OR budget exhausted.}
+
+\note{One iteration of SISC is the FULL Lloyd-style cycle: (greedy segmentation $+$ hard assignment), followed by a DBA centroid update. The counter advances once per cycle, not once per phase. Two stopping rules: assignments stable between consecutive iterations, or a maximum iteration budget reached. In practice the algorithm converges in roughly 10--15 iterations on the assets we tested.}
+\end{frame}
+
+\begin{frame}{Limits of the SISC algorithm}
+\begin{block}{Local minima risk}
+SISC is a non-convex optimisation: greedy segmentation followed by iterative centroid update. It can stall when motifs are noisy or weakly separated.
+\end{block}
+
+\begin{block}{Initialization sensitivity}
+Bad initial centroids yield a bad final segmentation. This is exactly why we use K-means++ for the seeding step (back-reference to the pipeline slide).
+\end{block}
+
+\begin{alertblock}{Hyperparameter sensitivity}
+$K$ and $[l_{\min},l_{\max}]$ must be chosen up front. Mis-set values either over-fragment (too many tiny motifs) or under-segment (one motif swallows the series).
+\end{alertblock}
+
+\medskip
+\centering\footnotesize\emph{Inherent to any non-convex clustering procedure on time-series data: we don't take a clean segmentation for granted.}
+\note{Three failure modes worth flagging before we move on to generation. The first is structural (non-convex objective). The second motivates the K-means++ initialisation we already discussed. The third bites when porting the method to a new asset where the natural motif length is unknown.}
+\end{frame}

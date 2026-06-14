@@ -41,3 +41,9 @@ Common data unless noted: `fts-diffusion-ref/data/data_toy_l10-20_*`, series len
 
 - GOOG/ZC=F author-faithful downstream TATR/TMTR is not present here. The released S&P-style downstream split requires `252*5` held-out initialization points, which the GOOG/ZC=F 80/20 held-out windows do not provide.
 - Exact Appendix B.3 author replication is not present here. The reference tree lacks the exact one-pattern data, synthetic generator, standard pattern arrays, random seed, and standalone B.3 reproduction script.
+
+## Presentation Figure Pack
+
+| Output folder | Settings key | What was varied | Do not rerun unless changing |
+|---|---|---|---|
+| `04_presentation_figures` | `presentation_figures | source=organized generated outputs | script=scripts/generate_presentation_figures.py | figures=13` | Slide-ready visual summaries, including pattern-diffusion mechanism visuals, matched-handoff PDF, and GIF animations. | Upstream result tables, presentation story, or visual style. |

@@ -1,0 +1,116 @@
+\section{Evolution module (PEM)}
+
+\begin{frame}{Step 3: pattern evolution}
+\framesubtitle{Markets evolve through regimes; PEM learns the empirical transition kernel}
+\vspace{-2mm}
+{\scriptsize\itshape Markets evolve through regimes (bull/bear, low-vol/high-vol). The PEM learns the empirical transition kernel between the latent regimes that SISC discovered.}
+
+\medskip
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.52\textwidth}\footnotesize
+\textbf{What the PEM does}
+\begin{enumerate}\setlength\itemsep{1pt}\setlength\topsep{0pt}
+  \item Governs the \alert{temporal structure} of the synthetic series.
+  \item Assumes Markov dynamics: $S_{m+1}\sim Q(\cdot\mid S_m)$.
+  \item \alert{Sensitive to the rollout protocol} (headline of the next slides).
+  \item Iterated \alert{autoregressively} at sampling time: MAPE worsens as more synthetic data is fed in, errors compound.
+  \item \alert{Low-dimensional}: collapses each segment to $(p_m,\alpha_m,\beta_m)$.
+\end{enumerate}
+\end{column}
+\begin{column}{0.46\textwidth}
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[font=\tiny,
+  rst/.style={circle,draw=Coral,fill=Coral!25,minimum size=2.0mm,inner sep=0pt},
+  nd/.style ={circle,draw=NavyBlue,fill=NavyBlue!10,minimum size=2.0mm,inner sep=0pt},
+  arr/.style={-{Latex[length=1.4mm]},thin,NavyBlue}]
+  \node[anchor=west,font=\scriptsize\bfseries,NavyBlue] at (0,2.2) {authors (reset)};
+  \foreach \b/\x in {1/0.0, 2/2.0, 3/4.0}{
+    \node[rst]              at (\x,1.6) {};
+    \node[nd] (a\b)         at (\x+0.5,1.6) {};
+    \node[nd] (b\b)         at (\x+1.0,1.6) {};
+    \node[nd] (c\b)         at (\x+1.5,1.6) {};
+    \draw[arr] (\x+0.05,1.6) -- (a\b);
+    \draw[arr] (a\b) -- (b\b);
+    \draw[arr] (b\b) -- (c\b);
+  }
+  \node[anchor=west,font=\tiny,GraySoft] at (0,1.15) {[reset] $\to$ chain $\to$ [reset] $\to$ chain $\dots$};
+
+  \node[anchor=west,font=\scriptsize\bfseries,NavyBlue] at (0,0.6) {ours (split)};
+  \node[rst] (s0) at (0.0,0.0) {};
+  \foreach \i in {1,...,9}{
+     \pgfmathsetmacro{\xx}{0.6*\i}
+     \node[nd] (n\i) at (\xx,0.0) {};
+  }
+  \foreach \a/\b in {s0/n1, n1/n2, n2/n3, n3/n4, n4/n5, n5/n6, n6/n7, n7/n8, n8/n9}{
+     \draw[arr] (\a) -- (\b);
+  }
+  \foreach \i in {2,4,6,8}{
+     \pgfmathsetmacro{\xx}{0.6*\i-0.3}
+     \draw[GraySoft!70,dashed,thin] (\xx,0.4) -- (\xx,-0.4);
+  }
+  \node[anchor=west,font=\tiny,GraySoft] at (0,-0.7) {[start] $\to$ continuous chain $\to$ sliced into blocks};
+\end{tikzpicture}}
+\end{column}
+\end{columns}
+
+\medskip
+{\scriptsize Authors \alert{reset} the chain at the start of every downstream block. We let the chain \alert{evolve continuously} and slice it. This subtle choice flips the result for S\&P 500 (we'll see how in the results section).}
+\note{The state is augmented by scaling factors, so the transition kernel can model not just which pattern follows which, but also how the next instance scales in time and magnitude. Reset vs split is the central methodological point of the talk; the comparison is forward-referenced but not spoiled.}
+\end{frame}
+
+\begin{frame}{Pattern evolution network}
+\framesubtitle{Classification for patterns, regression for scales}
+\begin{block}{Transition network}
+\[ (\hat{p}_{m+1},\hat{\alpha}_{m+1},\hat{\beta}_{m+1}) = \phi(p_m,\alpha_m,\beta_m). \]
+\end{block}
+
+\begin{columns}[onlytextwidth]
+\begin{column}{0.48\textwidth}
+\begin{alertblock}{Outputs}
+\begin{itemize}
+  \item next pattern $p_{m+1}$;
+  \item next duration scale $\alpha_{m+1}$;
+  \item next magnitude scale $\beta_{m+1}$.
+\end{itemize}
+\end{alertblock}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{alertblock}{Learning tasks}
+\begin{itemize}
+  \item pattern: classification;
+  \item duration: regression;
+  \item magnitude: regression.
+\end{itemize}
+\end{alertblock}
+\end{column}
+\end{columns}
+
+\medskip
+\[ \mathcal{L}(\phi)
+=
+\mathbb{E}_{x_m}\!\bigl[
+\ell_{CE}(p_{m+1},\hat{p}_{m+1})
++\|\alpha_{m+1}-\hat{\alpha}_{m+1}\|_2^2
++\|\beta_{m+1}-\hat{\beta}_{m+1}\|_2^2\bigr]. \]
+\note{Three-headed network: one classification head and two regression heads, trained jointly. In our implementation the transition network is an LSTM.}
+\end{frame}
+
+\begin{frame}{Full synthetic time-series generation}
+\framesubtitle{Putting the three modules together}
+\begin{enumerate}\setlength\itemsep{2pt}
+  \item Start from an initial historical segment.
+  \item Use the evolution network to predict
+        $(\hat{p}_{m+1},\hat{\alpha}_{m+1},\hat{\beta}_{m+1})$.
+  \item Generate the next segment via the pattern-conditioned diffusion model.
+  \item Decode it into a variable-length financial segment.
+  \item Append the segment to the synthetic series.
+  \item Repeat until the desired path length is reached.
+\end{enumerate}
+
+\medskip
+\begin{alertblock}{Intuition}
+Local motifs are produced by diffusion; global temporal structure is controlled by the evolution network.
+\end{alertblock}
+\note{Sampling at inference time alternates the two modules, motif by motif, until the synthetic series is long enough.}
+\end{frame}

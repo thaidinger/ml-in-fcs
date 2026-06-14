@@ -1,0 +1,90 @@
+\section{TATR: the downstream benchmark}
+
+\begin{frame}{TATR: Train on Augmentation, Test on Real}
+\framesubtitle{Does FTS-Diffusion synthetic data \emph{help} a forecaster?}
+\vspace{-3mm}
+
+\centering
+\resizebox{0.92\textwidth}{!}{%
+\begin{tikzpicture}[font=\footnotesize,
+  real/.style ={rectangle,rounded corners=2pt,draw=NavyBlue,thick,
+                fill=NavyBlue!10,minimum width=2.0cm,minimum height=0.95cm,align=center,text=NavyDeep},
+  syn/.style  ={rectangle,rounded corners=2pt,draw=Coral,thick,
+                fill=Coral!12,minimum width=2.6cm,minimum height=0.95cm,align=center,text=NavyDeep},
+  mod/.style  ={rectangle,rounded corners=2pt,draw=TealAcc,thick,
+                fill=TealAcc!12,minimum width=2.2cm,minimum height=0.95cm,align=center,text=NavyDeep},
+  op/.style   ={circle,draw=NavyDeep,thick,fill=Sand,inner sep=0pt,minimum size=6mm,
+                font=\scriptsize\bfseries},
+  box/.style  ={rectangle,rounded corners=2pt,draw=NavyDeep,thick,
+                fill=NavyDeep!8,minimum width=1.4cm,minimum height=0.95cm,align=center,
+                text=NavyDeep,font=\footnotesize\bfseries},
+  arr/.style  ={-{Latex[length=2.4mm]},thick,NavyDeep}]
+
+  % --- top row: real history split ---
+  \node[real] (hist)    at (0,2.4)   {Real history\\(20\,\% test slice)};
+  \node[real] (init)    at (4.3,3.2) {\textbf{Real init}\\\scriptsize 62.5\,\% \scriptsize(S\&P\,500: 5y)};
+  \node[real] (test)    at (4.3,1.6) {\textbf{Real test}\\\scriptsize 37.5\,\% \scriptsize(S\&P\,500: $\approx$3y)};
+  \draw[arr] (hist) -- (init);
+  \draw[arr] (hist) -- (test);
+  \draw[GraySoft!70,dashed,thin] (2.55,3.7) -- (2.55,1.0)
+        node[GraySoft,anchor=north,font=\tiny]{split @ 62.5\,\%};
+
+  % --- middle row: synthetic side ---
+  \node[mod] (ftsd)  at (0,0.4)  {\textbf{FTS-Diffusion}\\\scriptsize SISC+PGM+PEM};
+  \node[syn] (synth) at (4.3,0.4) {\textbf{Synthetic} $Y\!\times\!252$\,d\\\scriptsize $Y\!\in\!\{0,10,\dots,100\}$\,y};
+  \draw[arr] (ftsd) -- (synth);
+
+  % --- concat / LSTM / predict / score ---
+  \node[op]   (cat)  at (7.4,1.8) {$\oplus$};
+  \node[mod]  (lstm) at (9.7,1.8) {\textbf{LSTM}\\\scriptsize 1\,d-ahead};
+  \node[box]  (pred) at (12.0,1.8) {Predict};
+  \node[box,NavyDeep,fill=Coral!18,draw=Coral] (mape) at (13.9,1.8) {\textbf{MAPE}};
+
+  \draw[arr] (init.east)  to[bend left=8]  (cat.west);
+  \draw[arr] (synth.east) to[bend right=8] (cat.west);
+  \draw[arr] (cat)  -- (lstm);
+  \draw[arr] (lstm) -- (pred);
+  \draw[arr] (test.east) to[bend left=10] (pred.north);
+  \draw[arr] (pred) -- (mape);
+
+  % --- background colour key (very light) ---
+  \node[anchor=west,font=\tiny,NavyBlue] at (-0.2,3.95) {real data};
+  \draw[NavyBlue,thick,fill=NavyBlue!10] (1.0,3.85) rectangle (1.3,4.05);
+  \node[anchor=west,font=\tiny,Coral]    at (1.55,3.95) {synthetic data};
+  \draw[Coral,thick,fill=Coral!12] (2.85,3.85) rectangle (3.15,4.05);
+  \node[anchor=west,font=\tiny,TealAcc]  at (3.45,3.95) {model};
+  \draw[TealAcc,thick,fill=TealAcc!12] (4.10,3.85) rectangle (4.40,4.05);
+\end{tikzpicture}}
+
+\vspace{0.5mm}
+\begin{columns}[onlytextwidth,T]
+\begin{column}{0.62\textwidth}\scriptsize
+\begin{itemize}\setlength\itemsep{0pt}\setlength\topsep{0pt}
+  \item \textbf{Train:} \texttt{real\_init} $\;\oplus\;$ \texttt{synth}$[0:Y\!\cdot\!252]$.
+  \item \textbf{Test:} real held-out (never seen during training).
+  \item \textbf{Sweep:} $Y\in\{0,10,20,\dots,100\}$ years of synthetic.
+  \item \textbf{Score:} MAPE on real test, mean over 15 seeds.
+\end{itemize}
+\end{column}
+\begin{column}{0.36\textwidth}
+\centering
+\begin{tikzpicture}[font=\tiny,xscale=0.26,yscale=0.55]
+  \draw[->,GraySoft] (0,0) -- (10,0) node[right,GraySoft]{$Y\!\cdot\!252$\,d};
+  \draw[->,GraySoft] (0,0) -- (0,2.4) node[above,GraySoft]{MAPE};
+  \draw[GraySoft,dashed,thin] (0,1.6) -- (10,1.6);
+  \node[GraySoft,font=\tiny,anchor=west] at (5.2,1.85) {baseline ($Y\!=\!0$)};
+  \draw[Coral,thick] plot[smooth] coordinates {(0,1.6) (1.5,1.3) (3,1.0) (5,0.85) (7,0.8) (9.5,0.85)};
+  \node[Coral,font=\tiny,anchor=west] at (4.5,0.55) {synthetic helps};
+\end{tikzpicture}
+\end{column}
+\end{columns}
+
+\vspace{0.5mm}
+\begin{alertblock}{One question only}
+Does adding $Y$ years of synthetic data \alert{reduce} the LSTM's MAPE on real held-out data?
+A curve below the $Y\!=\!0$ baseline says \emph{yes}.
+{\scriptsize 5y/3y are S\&P 500; the same 62.5/37.5 ratio is kept on GOOG and ZC$=$F.}
+\end{alertblock}
+
+\note{TATR is Train-on-Augmentation-Test-on-Real. The held-out 20\% slice of real history is split 62.5/37.5: the first 5 years anchor the LSTM training set, the last $\approx$3 years are the evaluation set (never seen by anything). FTS-Diffusion produces $Y$ years of synthetic data; we append them to the real init and train the LSTM (full-batch, 100 epochs, MAE, hidden=32, window=64). We sweep $Y$ from 0 (real-only baseline) to 100 years in 10-year steps. The metric is MAPE on the real test set, averaged over 15 seeds. \emph{How} those $Y$ synthetic years are produced is the protocol choice (next slide).}
+\end{frame}

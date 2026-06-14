@@ -1,0 +1,53 @@
+\section{Conclusions}
+
+\begin{frame}{Contributions}
+\begin{itemize}\setlength\itemsep{4pt}
+  \item Faithful from-scratch replication of FTS-Diffusion (SISC $+$ PGM $+$ PEM) on three assets: S\&P 500, GOOG, ZC$=$F.
+  \item Identified four reproducibility issues in the public reference implementation; documented patches.
+  \item Defined and compared three synthetic-data protocols (authors / split / random\_init); showed the headline trend depends on the protocol.
+  \item Added per-run MAPE confidence intervals and a paper-vs.-replication gap diagnostic.
+  \item Pattern dictionaries learned and visualised for $K\!\in\!\{11,13,14\}$ across all three assets, plus MC transition-state figures.
+\end{itemize}
+\note{Five contributions, all reproducible from the repo. The protocol comparison is the most novel piece of the work: it is not in the paper but it should be.}
+\end{frame}
+
+\begin{frame}{Open questions}
+\begin{itemize}\setlength\itemsep{4pt}
+  \item Which protocol \emph{should} be the benchmark? \texttt{split} is the only one that exploits cross-year MC evolution, but stationarity is not guaranteed.
+  \item Is the PEM Markov chain stationary in practice, and on what timescale?
+  \item Why does MAPE grow with augmentation under the authors' protocol: leakage from the rolling-window scheme, or genuine distributional drift?
+  \item How sensitive are downstream results to $K$? Qualitative flips on ZC$=$F between $K\!=\!11$ and $K\!=\!13$.
+\end{itemize}
+\begin{exampleblock}{Bottom line}
+The architecture is sound; the experimental protocol is not. A clean replication requires both.
+\end{exampleblock}
+\note{Closing thought: FTS-Diffusion has the right inductive bias (motifs as variable-length DTW clusters) but the published downstream comparison is fragile under protocol choice.}
+\end{frame}
+
+\begin{frame}[fragile]{Backup: repository layout}
+\footnotesize
+\begin{verbatim}
+ml-in-fcs/
+  architectures/{asset}/k{K}/{data,res,trained_models}/   <- SISC + PGM + PEM ckpts
+  synthetic/{asset}/k{K}/{protocol}/run_XX_{syn,states}.npy
+  results/tatr/{asset}/k{K}/{protocol}/run_XX.csv          <- per-run MAPE
+  figures/{sisc,tatr,mc_analysis}/{asset}/k{K}/...         <- final PDFs
+  src/{TATR_Reduced_Replication.ipynb,
+       FTS_Diffusion_Training.ipynb,
+       B3_SISC_Simulated_Investigation.ipynb}
+\end{verbatim}
+\end{frame}
+
+\begin{closingframe}
+
+Deli Lin, Eric Shao, Lapo Linossi, Tom Haidinger\\
+\medskip
+ETH Zurich\\
+Machine Learning in Finance and Complex Systems\\
+Supervisor: Alexander Arandjelovic
+
+\medskip
+
+Thank you. \emph{Questions?}
+
+\end{closingframe}

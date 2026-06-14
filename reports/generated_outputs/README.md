@@ -9,6 +9,7 @@ This directory contains generated replication artifacts and diagnostics. It is o
 | `01_sp500_downstream_replication/` | S&P 500 TMTR/TATR downstream replication, protocol diagnostics, and long-batch checks. | `01_sp500_downstream_replication/README.md` |
 | `02_goog_zcf_real_asset_sisc/` | GOOG and ZC=F real-asset SISC pattern-library artifacts and comparison notes. | `02_goog_zcf_real_asset_sisc/README.md` |
 | `03_appendix_b3_simulated_sisc/` | Appendix B.3 simulated-data SISC replication attempts and sweep results. | `03_appendix_b3_simulated_sisc/README.md` |
+| `04_presentation_figures/` | Slide-ready visual summaries generated from the organized result tables. | `04_presentation_figures/README.md` |
 
 Top-level files:
 

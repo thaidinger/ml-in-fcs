@@ -1,0 +1,95 @@
+\section{TATR: synthetic-data protocols}
+
+\begin{frame}{Three ways to produce the $Y\!\cdot\!252$ synthetic days}
+\framesubtitle{Same FTS-Diffusion, three Markov-chain rollouts}
+
+\begin{columns}[onlytextwidth,T]
+% --- AUTHORS --------------------------------------------------
+\begin{column}{0.31\textwidth}\raggedright
+\centering\textbf{\color{NavyBlue}authors}\\[1mm]
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[font=\tiny,
+  st/.style={circle,draw=NavyBlue,fill=NavyBlue!10,minimum size=2.4mm,inner sep=0pt},
+  ed/.style={circle,draw=GraySoft,fill=Sand,minimum size=2.0mm,inner sep=0pt},
+  arr/.style={-{Latex[length=1.4mm]},NavyBlue,thin}]
+  \node[st] (s) at (0,0.9) {};
+  \node[font=\tiny,anchor=east] at (-0.1,0.9) {$(p_0,l_0,m_0)$};
+  \foreach \i/\y in {1/2.4, 2/1.8, 3/1.2, 4/0.6, 5/0.0, 6/-0.6}{
+    \node[ed] (a\i) at (1.6,\y) {};
+    \node[ed] (b\i) at (2.6,\y) {};
+    \node[ed] (c\i) at (3.6,\y) {};
+    \draw[arr] (s) -- (a\i);
+    \draw[arr] (a\i) -- (b\i);
+    \draw[arr] (b\i) -- (c\i);
+    \node[anchor=west,GraySoft,font=\tiny] at (3.75,\y) {y\i};
+  }
+  \node[font=\tiny,GraySoft,anchor=north] at (1.8,-1.0) {$\cdots$ (10 chains total)};
+\end{tikzpicture}}\\[-1mm]
+\begin{minipage}{\linewidth}\centering\scriptsize
+Re-init every year from the same $(p_0,l_0,m_0)$.\\
+\textbf{\color{NavyBlue}Pro:} paper-faithful.\\
+\textbf{\color{Coral}Con:} no cross-year MC.
+\end{minipage}
+\end{column}
+
+% --- SPLIT ----------------------------------------------------
+\begin{column}{0.31\textwidth}\raggedright
+\centering\textbf{\color{NavyBlue}split}\\[1mm]
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[font=\tiny,
+  st/.style={circle,draw=Coral,fill=Coral!20,minimum size=2.4mm,inner sep=0pt},
+  nd/.style={circle,draw=NavyBlue,fill=NavyBlue!10,minimum size=2.2mm,inner sep=0pt},
+  arr/.style={-{Latex[length=1.4mm]},NavyBlue,thin}]
+  \node[st] (s0) at (0,0.6) {};
+  \node[font=\tiny,anchor=east] at (-0.1,0.6) {$(p_0,l_0,m_0)$};
+  \foreach \i in {1,...,11}{
+    \pgfmathsetmacro{\xx}{0.6*\i}
+    \node[nd] (n\i) at (\xx,0.6) {};
+  }
+  \foreach \a/\b in {s0/n1, n1/n2, n2/n3, n3/n4, n4/n5, n5/n6, n6/n7, n7/n8, n8/n9, n9/n10, n10/n11}{
+    \draw[arr] (\a) -- (\b);
+  }
+  \foreach \i in {1,...,9}{
+    \pgfmathsetmacro{\xx}{0.6 + 0.6*\i}
+    \draw[GraySoft!70,dashed,thin] (\xx,1.4) -- (\xx,-0.2);
+    \node[GraySoft,anchor=south,font=\tiny] at (\xx,1.42) {y\i};
+  }
+  \node[font=\tiny,anchor=north,GraySoft] at (3.5,-0.6) {(LSTM: 1y windows)};
+\end{tikzpicture}}\\[1mm]
+\begin{minipage}{\linewidth}\centering\scriptsize
+Single continuous MC; year cuts only affect the LSTM rolling window.\\
+\textbf{\color{NavyBlue}Same budget; MC persists across years.}
+\end{minipage}
+\end{column}
+
+% --- RANDOM INIT ----------------------------------------------
+\begin{column}{0.31\textwidth}\raggedright
+\centering\textbf{\color{NavyBlue}random\_init}\\[1mm]
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[font=\tiny,
+  ri/.style={circle,draw=Coral,fill=Coral!30,minimum size=2.4mm,inner sep=0pt},
+  ed/.style={circle,draw=GraySoft,fill=Sand,minimum size=2.0mm,inner sep=0pt},
+  arr/.style={-{Latex[length=1.4mm]},NavyBlue,thin}]
+  \foreach \i/\y/\jit in {1/2.4/0.0, 2/1.8/0.15, 3/1.2/-0.1, 4/0.6/0.05, 5/0.0/0.2, 6/-0.6/-0.15}{
+    \pgfmathsetmacro{\xx}{0.1 + \jit}
+    \node[ri] (s\i) at (\xx,\y) {};
+    \node[ed] (a\i) at (1.4,\y) {};
+    \node[ed] (b\i) at (2.4,\y) {};
+    \node[ed] (c\i) at (3.4,\y) {};
+    \draw[arr] (s\i) -- (a\i);
+    \draw[arr] (a\i) -- (b\i);
+    \draw[arr] (b\i) -- (c\i);
+    \node[anchor=west,GraySoft,font=\tiny] at (3.55,\y) {y\i};
+  }
+  \node[font=\tiny,GraySoft,anchor=north] at (1.8,-1.0) {$\cdots$ (10 chains total)};
+\end{tikzpicture}}\\[-1mm]
+\begin{minipage}{\linewidth}\centering\scriptsize
+Re-init each year; init state $\sim$ \texttt{SEGMENTS\_INIT}.\\
+\textbf{Diagnostic:} isolates init from MC.
+\end{minipage}
+\end{column}
+\end{columns}
+
+\vspace{2mm}
+\note{This is the central slide for the defence: same dataset, same number of synthetic samples, only the structure of the Markov-chain rollout changes. ``authors'' is the protocol used in the paper; ``split'' is our re-implementation that exploits cross-year transitions; ``random\_init'' is a diagnostic experiment that isolates initialisation from chain evolution.}
+\end{frame}

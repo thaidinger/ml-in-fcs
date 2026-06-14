@@ -1,0 +1,76 @@
+\section{TATR results: authors vs split}
+
+\begin{frame}{S\&P 500, $K=14$: authors vs split}
+\begin{columns}[onlytextwidth,T]
+\begin{column}{0.49\textwidth}
+\centering\textbf{authors}\\[1mm]
+\includegraphics[width=\linewidth]{figures/tatr/sp500/k14/authors/final_enhanced.pdf}\\[1mm]
+{\scriptsize\color{Coral}\textbf{MAPE delta: $+208.47\%$ vs.\ baseline.}}
+\end{column}
+\begin{column}{0.49\textwidth}
+\centering\textbf{split}\\[1mm]
+\includegraphics[width=\linewidth]{figures/tatr/sp500/k14/split/final_enhanced.pdf}\\[1mm]
+{\scriptsize\color{NavyBlue}\textbf{Split: continuous chain across years.}}
+\end{column}
+\end{columns}
+\vspace{1mm}
+\centering\footnotesize Same data budget; only the MC connectivity changes between protocols.
+\note{The two panels use exactly the same training data and the same number of synthetic samples per year. The difference between them is how the MC chain is rolled out: yearly re-init (authors) versus one continuous chain cut for the LSTM window (split). \textbf{If the in-figure +208.47\% annotation is occluded by the matplotlib legend, regenerate the panel with} \texttt{plt.legend(bbox\_to\_anchor=(1.02, 1), loc='upper left')} \textbf{or} \texttt{loc='lower left'}.}
+\end{frame}
+
+\begin{frame}{GOOG, $K=11$: authors vs split}
+\begin{columns}[onlytextwidth,T]
+\begin{column}{0.49\textwidth}
+\centering\textbf{authors}\\[1mm]
+\includegraphics[width=\linewidth]{figures/tatr/goog/k11/authors/final_enhanced.pdf}
+\end{column}
+\begin{column}{0.49\textwidth}
+\centering\textbf{split} {\scriptsize\color{Coral}(TODO: insert split panel, figure pending)}\\[1mm]
+\fbox{\parbox[c][4.4cm][c]{0.96\linewidth}{\centering\itshape per-run CSVs available\\under \texttt{results/tatr/goog/k11/split/};\\[1mm] final plot not yet generated\\{\scriptsize(figure pending)}}}
+\end{column}
+\end{columns}
+\vspace{1mm}
+\centering\footnotesize $K=11$ on GOOG: smaller post-SISC budget shrinks the cluster count proportionally.
+\note{If the authors panel legend obscures the MAPE annotation, regenerate with the legend outside the axes (bbox\_to\_anchor). Split panel still needs to be produced from the per-run CSVs.}
+\end{frame}
+
+\begin{frame}{ZC$=$F, $K=11$: authors vs split}
+\begin{columns}[onlytextwidth,T]
+\begin{column}{0.49\textwidth}
+\centering\textbf{authors}\\[1mm]
+\includegraphics[width=0.96\linewidth]{figures/tatr/zcf/k11/authors/final_enhanced.pdf}
+\end{column}
+\begin{column}{0.49\textwidth}
+\centering\textbf{split}\\[1mm]
+\includegraphics[width=0.96\linewidth]{figures/tatr/zcf/k11/split/final_enhanced.pdf}
+\end{column}
+\end{columns}
+\vspace{1mm}
+\centering\footnotesize Same $K=11$ as GOOG; the MAPE level differs because the motif library does.
+\note{If the red MAPE annotation on the authors panel sits outside the plot frame, regenerate the figure with \texttt{plt.tight\_layout()} and larger figure margins so the annotation lives inside the axes.}
+\end{frame}
+
+\begin{frame}{S\&P 500, $K=14$: diagnostic, random init}
+\centering
+\includegraphics[width=0.72\textwidth]{figures/tatr/sp500/k14/random_init/final_enhanced.pdf}\\[2mm]
+\footnotesize Random init isolates the initialisation effect from the MC-evolution effect.
+\note{If random\_init MAPE is close to authors', the yearly re-init wasn't doing much: the MC was effectively starting fresh every year anyway. If random\_init is much worse, the deterministic $(p_0,l_0,m_0)$ matters more than the MC dynamics. If the red annotation runs into the axis border, reposition it inside the axes or pad the right/bottom margins.}
+\end{frame}
+
+\begin{frame}{Authors' checkpoint vs.\ trained-from-scratch (S\&P 500, $K=14$)}
+\framesubtitle{Same authors protocol; only the PGM$+$PEM weights differ}
+\vspace{-1mm}
+\begin{columns}[onlytextwidth,T]
+\begin{column}{0.49\textwidth}
+\centering\textbf{authors' checkpoint}\\[1mm]
+\includegraphics[width=\linewidth]{figures/tatr/sp500/k14/authors/final_enhanced.pdf}
+\end{column}
+\begin{column}{0.49\textwidth}
+\centering\textbf{trained from scratch}\\[1mm]
+\includegraphics[width=\linewidth]{figures/tatr/sp500/k14/scratch/final_enhanced.pdf}
+\end{column}
+\end{columns}
+\vspace{1mm}
+\centering\footnotesize \textbf{Why $K=14$ here:} keeps the authors' data budget on S\&P 500; on the smaller assets we use $K=11$ because the post-SISC training set shrinks proportionally.
+\note{Both panels use the \texttt{authors} protocol (yearly re-init from $(p_0,l_0,m_0)$). The left uses the authors' provided PGM$+$PEM checkpoints; the right uses weights we re-trained from scratch on our 80\% train slice. If the two curves match, the reproducibility on S\&P 500/K=14 is solid.}
+\end{frame}

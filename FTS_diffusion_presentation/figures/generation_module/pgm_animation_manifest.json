@@ -1,0 +1,6 @@
+{
+  "forward_endpoint_reverse_start_max_abs_diff": 0.0e+00,
+  "frames_per_gif": 96,
+  "fps": 8,
+  "note": "pgm_02 final frame and pgm_03 first frame use the same terminal_noisy array."
+}
