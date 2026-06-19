@@ -34,7 +34,7 @@
 \maketitle
 
 \begin{abstract}
-Financial time-series generators are often evaluated by marginal stylized facts and downstream forecasting gains, but those criteria can miss protocol artifacts and artificial conditional mean predictability. We study FTS-Diffusion, an ICLR 2024 model based on scale-invariant subsequence clustering, pattern-conditioned diffusion, and learned pattern evolution. Our replication finds that S\&P 500 Train-on-Augmentation-Test-on-Real (TATR) conclusions depend strongly on the synthetic rollout: a six-seed continuous-rollout protocol reaches a mean best improvement of $84.9\%$, whereas independent 252-day blocks never improve over baseline and finish $193.2\%$ worse. We also fail to reproduce the Appendix B.3 SISC toy targets, with best average per-unit DTW $0.0321$ versus $0.01$ and best interval IoU $0.6418$ versus $0.784$. As an extension, we implement a fixed predictable-drift diagnostic for generated returns. In a new 100-seed sign-drift sweep, hidden Markov sign persistence preserves the magnitude path but raises the diagnostic by $6.4\times$ relative to an iid-sign control, and it is rejected in all paired runs. The main lesson is that realistic-looking financial paths are not enough: synthetic finance benchmarks need protocol-explicit generation and direct checks for artificial alpha.
+Financial time-series generators are often evaluated by marginal stylized facts and downstream forecasting gains, but those criteria can miss protocol artifacts and artificial conditional mean predictability. We study FTS-Diffusion, an ICLR 2024 model based on scale-invariant subsequence clustering, pattern-conditioned diffusion, and learned pattern evolution. Our replication finds that S\&P 500 Train-on-Augmentation-Test-on-Real (TATR) conclusions depend strongly on the synthetic rollout: a six-seed continuous-rollout protocol reaches a mean best improvement of $84.9\%$, whereas independent 252-day blocks never improve over baseline and finish $193.2\%$ worse. We also fail to reproduce the Appendix B.3 SISC toy targets, with best average per-unit DTW $0.0321$ versus $0.01$ and best interval IoU $0.6418$ versus $0.784$. As an extension, we implement a fixed predictable-drift diagnostic. On real S\&P 500, GOOG, and ZC=F holdouts, the statistic lies inside asset-specific block-shuffle null bands. In a 100-seed hidden-drift experiment, the same statistic tracks exploitable artificial alpha: at sign persistence $p=0.85$, mean out-of-sample Sharpe is $7.68$ versus $0.08$ for an iid-sign control. The main lesson is that realistic-looking financial paths are not enough: synthetic finance benchmarks need protocol-explicit generation and direct checks for artificial alpha.
 \end{abstract}
 
 \section{Introduction}
@@ -50,7 +50,7 @@ We therefore extend the evaluation with a predictable-drift diagnostic. Under a 
 we measure whether the next return $r_{t+1}$ has a nonzero linear conditional mean under a bounded test class. This is not a proof of market efficiency or absence of arbitrage. It is a finite, reproducible check for an important failure mode: a synthetic generator can match tails and volatility clustering while introducing a simple, exploitable conditional drift.
 
 \paragraph{Contributions.}
-We make four contributions: a replication summary on S\&P 500, GOOG, and corn futures (ZC=F); a six-seed isolation of TATR rollout sensitivity; a documented Appendix B.3 SISC replication gap; and a predictable-drift diagnostic validated by a new 100-seed controlled sweep.
+We make four contributions: a replication summary on S\&P 500, GOOG, and corn futures (ZC=F); a six-seed isolation of TATR rollout sensitivity; a documented Appendix B.3 SISC replication gap; and a predictable-drift diagnostic calibrated on real assets and validated by a 100-seed predictive-alpha experiment.
 
 \section{Background: FTS-Diffusion}
 
@@ -87,11 +87,11 @@ These protocols use the same broad data budget but different Markov-chain connec
 
 Table~\ref{tab:tatr-summary} summarizes the six-seed S\&P 500 long-batch TATR result. Continuous protocols reproduce strong paper-like reductions in downstream MAPE, but independent fixed blocks do not. The contrast is also visible in Figure~\ref{fig:tatr-protocol}: continuous trajectories eventually cross below the real-only baseline, while independent blocks worsen as augmentation increases.
 
-\begin{table}[t]
+\begin{table}[h]
   \caption{Six-seed S\&P 500 TATR summary. Percentages are relative to each protocol's no-augmentation baseline; lower MAPE is better. Continuous trajectory protocols reproduce large best improvements, whereas the independent-block rollout never improves over baseline and finishes much worse.}
   \label{tab:tatr-summary}
   \centering
-  \begin{tabular}{lrrrr}
+  \begin{tabular}{lrrlr}
     \toprule
     Protocol & Seeds & Baseline MAPE & Best change & Final change \\
     \midrule
@@ -164,26 +164,45 @@ The empirical estimator is therefore
 
 The statistic decomposes into interpretable components: unconditional drift, first-lag return predictability, second-lag return predictability, and two volatility-conditioned mean terms. In our implementation, returns are standardized using training-split mean and standard deviation only; the constant feature remains equal to one. We compare real data, synthetic data, and a block-shuffled null that preserves the return multiset and some local dependence while disrupting longer chronological alignment.
 
-\subsection{Controlled sign-drift sweep}
+\subsection{Real-asset calibration}
 
-To make the advantage of incorporating the diagnostic explicit, we run a 100-seed controlled sweep. For each seed, we simulate a zero-mean heavy-tailed GARCH-like path, use the first 4000 returns for standardization, and evaluate on the next 1000 returns. We then keep the evaluation-period magnitude path $|r_t|$ fixed and replace only the signs. The iid-sign control has no intentional sign predictability; the Markov-sign samples have sign persistence $p$ and therefore hidden conditional mean predictability. Magnitude quantiles and absolute-return autocorrelation are unchanged by construction.
+Before using $\hat{\delta}$ as a rejection statistic, we calibrate it on real held-out assets. For S\&P 500, GOOG, and ZC=F, we start from raw close-price CSVs, use the first $80\%$ of simple returns for standardization, and evaluate the last $20\%$. The null distribution uses 500 replications of 21-day block shuffling on the held-out returns. Table~\ref{tab:real-drift-calibration} shows that all three real held-out paths lie inside their asset-specific 5--95\% null bands, despite retaining heavy tails and volatility clustering. This is a useful sanity check: the diagnostic is not simply rejecting real financial data because it is non-Gaussian.
 
-Table~\ref{tab:drift-advantage} shows the result. Increasing sign persistence monotonically raises both ACF$(r)$ and the predictable-drift statistic, while ACF$(|r|)$ remains $0.1668$ for every sign-modified sample. At $p=0.85$, the hidden-drift sample has $6.4\times$ the mean $\hat{\delta}$ of the iid-sign control, and $\hat{\delta}$ is larger in all 100 paired seeds. The signed stylized distance does not reliably rank the hidden-drift sample worse than the iid-sign control, so the diagnostic adds information rather than duplicating a marginal summary.
-
-\begin{table}[t]
-  \caption{Controlled sign-drift sweep over 100 seeds. Each sign-modified sample uses the same magnitude path as the real evaluation slice, so the magnitude-path distance is zero and ACF$(|r|)$ lag 1 is $0.1668$ for all rows. Lower $\hat{\delta}$ means less predictable drift.}
-  \label{tab:drift-advantage}
+\begin{table}[h]
+  \caption{Real-asset predictable-drift calibration. The null band is the 5--95\% range from 500 block-shuffled held-out paths.}
+  \label{tab:real-drift-calibration}
   \centering
   \begin{tabular}{lrrrr}
     \toprule
-    Sample & $p$ & $\hat{\delta}$ mean & $\hat{\delta}$ std & ACF$(r)$ lag 1 \\
+    Asset & Test obs. & Real $\hat{\delta}$ & Null 5--95\% & ACF$(|r|)$ lag 1 \\
     \midrule
-    Real evaluation path & -- & 0.1049 & 0.0801 & 0.0000 \\
-    IID signs & -- & 0.1005 & 0.0715 & $-0.0055$ \\
-    Markov signs & 0.65 & 0.2152 & 0.1289 & 0.1690 \\
-    Markov signs & 0.75 & 0.3717 & 0.2297 & 0.2947 \\
-    Markov signs & 0.85 & 0.5383 & 0.2660 & 0.4036 \\
-    Markov signs & 0.90 & 0.6604 & 0.3686 & 0.4650 \\
+    S\&P 500 & 2018 & 0.0297 & [0.0222, 0.0303] & 0.2165 \\
+    GOOG & 755 & 0.0575 & [0.0403, 0.0629] & 0.0935 \\
+    ZC=F & 953 & 0.0173 & [0.0150, 0.0259] & 0.1250 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Controlled predictive-alpha test}
+
+We next test whether larger $\hat{\delta}$ corresponds to exploitable predictability. In each of 100 seeds, we simulate a zero-mean heavy-tailed GARCH-like path, keep the evaluation-period magnitude path $|r_t|$ fixed, and replace only the signs. The iid-sign control has no intentional sign predictability; Markov-sign samples have sign persistence $p$. We fit a ridge linear predictor on the first half of each evaluation path using the same feature map $\omega_t$, then evaluate one-step prediction and a sign strategy on the second half.
+
+Table~\ref{tab:drift-alpha} shows the result. The iid-sign and real controls have near-zero out-of-sample correlation, near-50\% directional accuracy, and near-zero strategy Sharpe. At $p=0.85$, the hidden-drift sample has mean $\hat{\delta}=0.5383$, out-of-sample correlation $0.4137$, directional accuracy $79.45\%$, and mean annualized Sharpe $7.68$ with seed standard deviation $1.26$. Across all controlled samples, pooled $\hat{\delta}$ and out-of-sample Sharpe have correlation $0.6414$. Thus the diagnostic is not merely a reporting statistic; it is aligned with artificial alpha.
+
+\begin{table}[t]
+  \caption{Controlled predictive-alpha test over 100 seeds. Magnitude paths are fixed within seed; only sign dependence changes.}
+  \label{tab:drift-alpha}
+  \centering
+  \begin{tabular}{lrrrrl}
+    \toprule
+    Sample & $p$ & $\hat{\delta}$ & OOS corr. & Dir. acc. & Sharpe (sd) \\
+    \midrule
+    Real evaluation path & -- & 0.1049 & 0.0035 & 0.5021 & 0.10 (0.84) \\
+    IID signs & -- & 0.1005 & 0.0017 & 0.5003 & 0.08 (0.69) \\
+    Markov signs & 0.65 & 0.2152 & 0.1393 & 0.5909 & 2.15 (1.06) \\
+    Markov signs & 0.75 & 0.3717 & 0.2845 & 0.6925 & 4.78 (1.11) \\
+    Markov signs & 0.85 & 0.5383 & 0.4137 & 0.7945 & 7.68 (1.26) \\
+    Markov signs & 0.90 & 0.6604 & 0.4886 & 0.8526 & 9.65 (1.41) \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -201,7 +220,7 @@ The penalty must be computed on ordered return sequences. Applying it across ran
 
 \section{Limitations and broader impact}
 
-Our replication is constrained by the information and compute available for this study. Some runs use reference checkpoints rather than a full fresh retraining of all modules. The drift extension is implemented and validated in a controlled sign-drift sweep, but the full FTS-Diffusion drift audit remains to be run on ordered generated samples from every rollout protocol. GOOG and ZC=F have shorter histories than S\&P 500, so the downstream split used for S\&P 500 is not directly portable without changing the question being asked.
+Our replication is constrained by the information and compute available for this study. Some runs use reference checkpoints rather than a full fresh retraining of all modules. The drift extension is calibrated on real assets and validated in controlled predictive-alpha experiments, but the full FTS-Diffusion drift audit remains to be run on ordered generated samples from every rollout protocol. GOOG and ZC=F have shorter histories than S\&P 500, so the downstream split used for S\&P 500 is not directly portable without changing the question being asked.
 
 The predictable-drift diagnostic is deliberately narrow. It tests a fixed finite-dimensional feature map, not every admissible trading strategy, and it is not a proof of no-arbitrage. Its strength is reproducibility: the statistic is simple, closed-form, and hard to tune after seeing the result.
 
