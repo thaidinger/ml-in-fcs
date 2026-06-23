@@ -1,6 +1,7 @@
 {
   "block_size": 21,
-  "n_alpha_seeds": 100,
+  "elapsed_seconds": 2.8276917920447886,
+  "n_alpha_seeds": 500,
   "n_eval_alpha": 1000,
   "n_train_alpha": 4000,
   "notes": [

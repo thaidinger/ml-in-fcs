@@ -19,6 +19,7 @@ import argparse
 import json
 import math
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -371,6 +372,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    started_at = time.perf_counter()
     args = build_parser().parse_args(argv)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     real_summary, real_null = real_asset_benchmark(args)
@@ -393,6 +395,7 @@ def main(argv: list[str] | None = None) -> int:
         "n_eval_alpha": args.n_eval_alpha,
         "persistence": args.persistence,
         "python": sys.executable,
+        "elapsed_seconds": time.perf_counter() - started_at,
         "notes": [
             "Real asset benchmark starts from raw price CSVs.",
             "Predictive-alpha experiment keeps magnitude paths fixed and changes only sign dependence.",

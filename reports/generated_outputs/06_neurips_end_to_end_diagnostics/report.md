@@ -12,14 +12,14 @@
 
 | sample_id          | n_seeds | pooled_delta_mean | oos_corr_mean | direction_acc_mean | strategy_sharpe_mean | acf_r_lag1_mean |
 | ------------------ | ------- | ----------------- | ------------- | ------------------ | -------------------- | --------------- |
-| iid_signs          | 100     | 0.1005            | 0.0017        | 0.5003             | 0.0822               | -0.0055         |
-| markov_signs_p0.65 | 100     | 0.2152            | 0.1393        | 0.5909             | 2.1476               | 0.1690          |
-| markov_signs_p0.75 | 100     | 0.3717            | 0.2845        | 0.6925             | 4.7842               | 0.2947          |
-| markov_signs_p0.85 | 100     | 0.5383            | 0.4137        | 0.7945             | 7.6808               | 0.4036          |
-| markov_signs_p0.90 | 100     | 0.6604            | 0.4886        | 0.8526             | 9.6466               | 0.4650          |
-| real_eval          | 100     | 0.1049            | 0.0035        | 0.5021             | 0.0980               | 0.0000          |
+| iid_signs          | 500     | 0.0941            | 0.0036        | 0.5020             | 0.0853               | -0.0029         |
+| markov_signs_p0.65 | 500     | 0.2088            | 0.1482        | 0.5968             | 2.3338               | 0.1740          |
+| markov_signs_p0.75 | 500     | 0.3435            | 0.2786        | 0.6952             | 4.7966               | 0.2892          |
+| markov_signs_p0.85 | 500     | 0.5126            | 0.4112        | 0.7976             | 7.7221               | 0.4039          |
+| markov_signs_p0.90 | 500     | 0.6164            | 0.4811        | 0.8483             | 9.4274               | 0.4613          |
+| real_eval          | 500     | 0.0976            | 0.0004        | 0.5025             | 0.0701               | 0.0002          |
 
-Across all controlled samples, the correlation between pooled delta and out-of-sample strategy Sharpe is `0.6414`.
+Across all controlled samples, the correlation between pooled delta and out-of-sample strategy Sharpe is `0.6921`.
 
 ## Stored End-to-End TATR Protocol Evidence
 
