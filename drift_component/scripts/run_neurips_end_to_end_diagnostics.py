@@ -16,8 +16,10 @@ and to the existing FTS-Diffusion replication outputs.
 from __future__ import annotations
 
 import argparse
+import os
 import json
 import math
+import random
 import sys
 import time
 from pathlib import Path
@@ -28,8 +30,10 @@ import pandas as pd
 
 COMPONENT_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = COMPONENT_ROOT.parent
+REF_ROOT = REPO_ROOT / "fts-diffusion-ref"
 
 sys.path.insert(0, str(COMPONENT_ROOT / "src"))
+sys.path.insert(0, str(REF_ROOT))
 
 from fts_diffusion.evaluation.drift import drift_delta, drift_report, null_drift_reports  # noqa: E402
 from fts_diffusion.evaluation.stylized import stylized_report  # noqa: E402
@@ -56,6 +60,65 @@ def load_price_returns(path: Path) -> np.ndarray:
     if prices.size < 3:
         raise ValueError(f"Not enough prices in {path}")
     return np.diff(prices) / prices[:-1]
+
+
+def price_returns(prices: np.ndarray) -> np.ndarray:
+    prices = np.asarray(prices, dtype=float)
+    if prices.size < 2:
+        return np.asarray([], dtype=float)
+    return np.diff(prices) / prices[:-1]
+
+
+def set_reference_seed(seed: int) -> None:
+    import torch
+
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+
+
+def pooled_drift_report_from_parts(
+    return_parts: list[np.ndarray],
+    train_mean: float,
+    train_std: float,
+) -> dict[str, float | int]:
+    """Pool drift moments over ordered parts without adding boundary transitions."""
+    from fts_diffusion.evaluation.drift import DRIFT_COMPONENTS, drift_moment
+
+    moments: list[np.ndarray] = []
+    weights: list[int] = []
+    block_deltas: list[float] = []
+    for part in return_parts:
+        values = np.asarray(part, dtype=float)
+        if values.size < 3:
+            continue
+        moment = drift_moment(values, train_mean=train_mean, train_std=train_std)
+        if np.all(np.isfinite(moment)):
+            moments.append(moment)
+            weights.append(values.size - 2)
+            block_deltas.append(float(np.linalg.norm(moment)))
+    if not moments:
+        row: dict[str, float | int] = {
+            "n_obs": 0,
+            "n_effective": 0,
+            "delta": float("nan"),
+            "block_delta_mean": float("nan"),
+            "block_delta_std": float("nan"),
+        }
+        row.update({component: float("nan") for component in DRIFT_COMPONENTS})
+        return row
+
+    weights_array = np.asarray(weights, dtype=float)
+    pooled_moment = np.average(np.vstack(moments), axis=0, weights=weights_array)
+    row = {
+        "n_obs": int(sum(len(part) for part in return_parts)),
+        "n_effective": int(sum(weights)),
+        "delta": float(np.linalg.norm(pooled_moment)),
+        "block_delta_mean": float(np.mean(block_deltas)),
+        "block_delta_std": float(np.std(block_deltas, ddof=0)),
+    }
+    row.update({component: float(value) for component, value in zip(DRIFT_COMPONENTS, pooled_moment)})
+    return row
 
 
 def real_asset_benchmark(args: argparse.Namespace) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -106,6 +169,182 @@ def real_asset_benchmark(args: argparse.Namespace) -> tuple[pd.DataFrame, pd.Dat
                 }
             )
     return pd.DataFrame(rows), pd.DataFrame(null_rows)
+
+
+def fts_protocol_drift_audit(args: argparse.Namespace, real_summary: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Evaluate ordered FTS-Diffusion rollout samples with the fixed drift statistic."""
+    from experiments.utils_downstream import get_downstream_data, init_first_segment
+    from models.load_models import load_ftsdiffusion
+    from models.model_params import prm_params
+    from models.utils_sampling import sampling_inputs
+    import torch
+    from torch.nn import functional as F
+
+    sp500_returns = load_price_returns(ASSET_FILES["sp500"])
+    split = int(math.floor(args.train_fraction * sp500_returns.size))
+    train = sp500_returns[:split]
+    train_mean = float(np.mean(train))
+    train_std = float(np.std(train, ddof=0))
+    sp500_row = real_summary[real_summary["asset"].eq("sp500")].iloc[0]
+    null_q95 = float(sp500_row["null_q95"])
+
+    previous_cwd = Path.cwd()
+    os.chdir(REF_ROOT)
+    try:
+        downstream_ts, segments_test, labels_test, lengths_test = get_downstream_data()
+        init_state, init_segment = init_first_segment(segments_test, labels_test, lengths_test)
+        model = load_ftsdiffusion()
+        _, _, patterns = sampling_inputs()
+        l_min = prm_params["l_min"]
+        torch.set_num_threads(max(1, min(args.fts_torch_threads, os.cpu_count() or 1)))
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        patterns_tensor = torch.as_tensor(patterns, dtype=torch.float32, device=device)
+        init_state_tensor = init_state.clone().detach().to(device).float()
+        init_segment_array = np.asarray(init_segment, dtype=np.float64)
+
+        def evolve_states(states: torch.Tensor) -> torch.Tensor:
+            pred = model["evolution"](states.to(device))
+            n_patterns = model["evolution"].n_patterns
+            range_length = model["evolution"].range_length
+            pattern = torch.argmax(F.softmax(pred[:, :n_patterns], dim=1), dim=1).float().unsqueeze(1)
+            length = (
+                torch.argmax(F.softmax(pred[:, n_patterns : n_patterns + range_length], dim=1), dim=1)
+                .float()
+                .unsqueeze(1)
+                + float(l_min)
+            )
+            magnitude = pred[:, n_patterns + range_length :].float()
+            return torch.cat((pattern, length, magnitude), dim=1)
+
+        def generate_segments(states: torch.Tensor) -> list[np.ndarray]:
+            states = states.to(device)
+            pattern_idx = states[:, 0].long()
+            lengths = states[:, 1].long().detach().cpu().numpy()
+            magnitudes = states[:, 2].float()
+            pattern_batch = patterns_tensor[pattern_idx]
+            generated, _ = model["generation"].generate(pattern_batch, lengths)
+            generated = generated * magnitudes.unsqueeze(1)
+            generated_np = generated.detach().cpu().numpy()
+            return [
+                np.asarray(generated_np[row_idx, : int(length)], dtype=np.float64)
+                for row_idx, length in enumerate(lengths)
+            ]
+
+        def generate_paths(length: int, n_paths: int, seed: int) -> list[np.ndarray]:
+            set_reference_seed(seed)
+            states = init_state_tensor.repeat(n_paths, 1)
+            paths = [list(init_segment_array) for _ in range(n_paths)]
+            active = np.ones(n_paths, dtype=bool)
+            while np.any(active):
+                active_idx = np.flatnonzero(active)
+                next_states = evolve_states(states[active_idx])
+                segments = generate_segments(next_states)
+                for local_idx, path_idx in enumerate(active_idx):
+                    segment = segments[local_idx]
+                    if segment.size == 0:
+                        active[path_idx] = False
+                        continue
+                    segment = segment - segment[0] + paths[path_idx][-1]
+                    remaining = length - len(paths[path_idx])
+                    if remaining > 0:
+                        paths[path_idx].extend(segment[:remaining])
+                    states[path_idx] = next_states[local_idx]
+                    active[path_idx] = len(paths[path_idx]) < length
+            return [np.asarray(path[:length], dtype=np.float64) for path in paths]
+
+        def generate_continuous(length: int, seed: int) -> np.ndarray:
+            return generate_paths(length=length, n_paths=1, seed=seed)[0]
+
+        def generate_independent_blocks(n_blocks: int, seed: int) -> list[np.ndarray]:
+            return generate_paths(length=args.fts_block_length, n_paths=n_blocks, seed=seed)
+
+        max_length = args.fts_blocks * args.fts_block_length
+        rows: list[dict[str, Any]] = []
+        components: list[dict[str, Any]] = []
+        for seed in args.fts_seeds:
+            continuous_prices = generate_continuous(max_length, seed)
+            independent_blocks = generate_independent_blocks(args.fts_blocks, seed + 10_000)
+            samples = [
+                ("continuous_rollout", [price_returns(continuous_prices)], continuous_prices),
+                (
+                    "independent_blocks",
+                    [price_returns(block) for block in independent_blocks],
+                    np.concatenate(independent_blocks),
+                ),
+            ]
+            for protocol, return_parts, prices in samples:
+                pooled = pooled_drift_report_from_parts(return_parts, train_mean=train_mean, train_std=train_std)
+                returns_flat = np.concatenate([part for part in return_parts if part.size])
+                stylized = stylized_report(returns_flat, max_lag=50)
+                row = {
+                    "seed": seed,
+                    "protocol": protocol,
+                    "n_blocks": args.fts_blocks,
+                    "n_price_obs": int(prices.size),
+                    "n_return_obs": int(pooled["n_obs"]),
+                    "delta": pooled["delta"],
+                    "delta_over_sp500_null_q95": float(pooled["delta"]) / null_q95,
+                    "violates_sp500_null_q95": bool(float(pooled["delta"]) > null_q95),
+                    "block_delta_mean": pooled["block_delta_mean"],
+                    "block_delta_std": pooled["block_delta_std"],
+                    "first_price": float(prices[0]),
+                    "last_price": float(prices[-1]),
+                    "mean_price": float(np.mean(prices)),
+                    "std_price": float(np.std(prices, ddof=0)),
+                    "acf_r_lag1": stylized["acf_r_lag1"],
+                    "acf_abs_r_lag1": stylized["acf_abs_r_lag1"],
+                    "excess_kurtosis": stylized["excess_kurtosis"],
+                }
+                rows.append(row)
+                components.append(
+                    {
+                        "seed": seed,
+                        "protocol": protocol,
+                        **{
+                            key: pooled[key]
+                            for key in (
+                                "mean_r_next",
+                                "mean_r_next_r_t",
+                                "mean_r_next_r_t_minus_1",
+                                "mean_r_next_abs_r_t",
+                                "mean_r_next_abs_r_t_minus_1",
+                            )
+                        },
+                    }
+                )
+    finally:
+        os.chdir(previous_cwd)
+
+    raw = pd.DataFrame(rows)
+    summary = (
+        raw.groupby("protocol")
+        .agg(
+            seeds=("seed", "nunique"),
+            delta_mean=("delta", "mean"),
+            delta_min=("delta", "min"),
+            delta_max=("delta", "max"),
+            delta_over_q95_mean=("delta_over_sp500_null_q95", "mean"),
+            violation_rate=("violates_sp500_null_q95", "mean"),
+            block_delta_mean=("block_delta_mean", "mean"),
+            first_price_mean=("first_price", "mean"),
+            last_price_mean=("last_price", "mean"),
+            mean_price_mean=("mean_price", "mean"),
+            std_price_mean=("std_price", "mean"),
+            acf_r_lag1_mean=("acf_r_lag1", "mean"),
+            acf_abs_r_lag1_mean=("acf_abs_r_lag1", "mean"),
+            excess_kurtosis_mean=("excess_kurtosis", "mean"),
+        )
+        .reset_index()
+    )
+    summary["sp500_real_delta"] = float(sp500_row["real_delta"])
+    summary["sp500_null_q95"] = null_q95
+    component_summary = (
+        pd.DataFrame(components)
+        .groupby("protocol")
+        .mean(numeric_only=True)
+        .reset_index()
+    )
+    return raw, summary.merge(component_summary, on="protocol", how="left", suffixes=("", "_component"))
 
 
 def simulate_garch(
@@ -299,6 +538,7 @@ def write_report(
     alpha_summary: pd.DataFrame,
     protocol_summary: pd.DataFrame,
     raw_alpha: pd.DataFrame,
+    fts_drift_summary: pd.DataFrame,
 ) -> None:
     alpha_compact = alpha_summary[
         [
@@ -354,6 +594,29 @@ def write_report(
         markdown_table(protocol_compact),
         "",
     ]
+    if not fts_drift_summary.empty:
+        fts_compact = fts_drift_summary[
+            [
+                "protocol",
+                "seeds",
+                "delta_mean",
+                "delta_min",
+                "delta_max",
+                "delta_over_q95_mean",
+                "violation_rate",
+                "last_price_mean",
+                "std_price_mean",
+                "acf_abs_r_lag1_mean",
+            ]
+        ].copy()
+        lines.extend(
+            [
+                "## Ordered FTS-Diffusion Drift Audit",
+                "",
+                markdown_table(fts_compact),
+                "",
+            ]
+        )
     (output_dir / "report.md").write_text("\n".join(lines), encoding="utf-8")
 
 
@@ -368,6 +631,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--n-train-alpha", type=int, default=4000)
     parser.add_argument("--n-eval-alpha", type=int, default=1000)
     parser.add_argument("--persistence", type=float, nargs="+", default=[0.65, 0.75, 0.85, 0.90])
+    parser.add_argument("--run-fts-drift-audit", action="store_true")
+    parser.add_argument("--fts-seeds", type=int, nargs="+", default=[42, 43, 44, 45, 46, 47])
+    parser.add_argument("--fts-blocks", type=int, default=100)
+    parser.add_argument("--fts-block-length", type=int, default=252)
+    parser.add_argument("--fts-torch-threads", type=int, default=4)
     return parser
 
 
@@ -378,12 +646,26 @@ def main(argv: list[str] | None = None) -> int:
     real_summary, real_null = real_asset_benchmark(args)
     alpha_raw, alpha_summary = predictive_alpha_experiment(args)
     protocol_summary = protocol_evidence()
+    fts_drift_error = None
+    if args.run_fts_drift_audit:
+        try:
+            fts_drift_raw, fts_drift_summary = fts_protocol_drift_audit(args, real_summary)
+        except Exception as exc:
+            fts_drift_error = repr(exc)
+            fts_drift_raw = pd.DataFrame()
+            fts_drift_summary = pd.DataFrame()
+    else:
+        fts_drift_raw = pd.DataFrame()
+        fts_drift_summary = pd.DataFrame()
 
     real_summary.to_csv(args.output_dir / "real_asset_drift_summary.csv", index=False)
     real_null.to_csv(args.output_dir / "real_asset_null_draws.csv", index=False)
     alpha_raw.to_csv(args.output_dir / "predictive_alpha_raw.csv", index=False)
     alpha_summary.to_csv(args.output_dir / "predictive_alpha_summary.csv", index=False)
     protocol_summary.to_csv(args.output_dir / "protocol_evidence_summary.csv", index=False)
+    if not fts_drift_raw.empty:
+        fts_drift_raw.to_csv(args.output_dir / "fts_protocol_drift_raw.csv", index=False)
+        fts_drift_summary.to_csv(args.output_dir / "fts_protocol_drift_summary.csv", index=False)
 
     metadata = {
         "seed": args.seed,
@@ -394,16 +676,23 @@ def main(argv: list[str] | None = None) -> int:
         "n_train_alpha": args.n_train_alpha,
         "n_eval_alpha": args.n_eval_alpha,
         "persistence": args.persistence,
+        "fts_seeds": args.fts_seeds,
+        "fts_blocks": args.fts_blocks,
+        "fts_block_length": args.fts_block_length,
+        "fts_torch_threads": args.fts_torch_threads,
+        "run_fts_drift_audit": args.run_fts_drift_audit,
+        "fts_drift_error": fts_drift_error,
         "python": sys.executable,
         "elapsed_seconds": time.perf_counter() - started_at,
         "notes": [
             "Real asset benchmark starts from raw price CSVs.",
             "Predictive-alpha experiment keeps magnitude paths fixed and changes only sign dependence.",
             "Protocol evidence summarizes stored end-to-end TATR runs generated by the reference sampler/LSTM pipeline.",
+            "If enabled, ordered FTS-Diffusion drift audit regenerates synthetic paths from stored checkpoints and excludes independent-block boundary transitions.",
         ],
     }
     (args.output_dir / "metadata.json").write_text(json.dumps(metadata, indent=2, sort_keys=True), encoding="utf-8")
-    write_report(args.output_dir, real_summary, alpha_summary, protocol_summary, alpha_raw)
+    write_report(args.output_dir, real_summary, alpha_summary, protocol_summary, alpha_raw, fts_drift_summary)
 
     p85 = alpha_summary[alpha_summary["sample_id"].eq("markov_signs_p0.85")].iloc[0]
     iid = alpha_summary[alpha_summary["sample_id"].eq("iid_signs")].iloc[0]
@@ -416,6 +705,12 @@ def main(argv: list[str] | None = None) -> int:
         "p85_sharpe_mean": float(p85["strategy_sharpe_mean"]),
         "iid_sharpe_mean": float(iid["strategy_sharpe_mean"]),
         "delta_sharpe_corr": float(alpha_raw[["pooled_delta", "strategy_sharpe"]].corr().iloc[0, 1]),
+        "fts_drift_summary": fts_drift_summary[
+            ["protocol", "delta_mean", "delta_over_q95_mean", "violation_rate"]
+        ].to_dict(orient="records")
+        if not fts_drift_summary.empty
+        else [],
+        "fts_drift_error": fts_drift_error,
     }
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0

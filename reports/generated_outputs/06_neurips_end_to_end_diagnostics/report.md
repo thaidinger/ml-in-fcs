@@ -29,3 +29,10 @@ Across all controlled samples, the correlation between pooled delta and out-of-s
 | tatr_continuous_chunked_5ahead | continuous_chunked            | 5     | -85.1853      | -77.4552       | 7085.0674           | 1701.5287           |
 | tatr_continuous_refit          | continuous_cross_refit_scaler | 1     | -85.4196      | -68.2497       | 7085.0674           | 1701.5287           |
 | tatr_independent_fixed         | independent_fixed             | 1     | 0.0000        | 193.2016       | 1248.8246           | 24.5283             |
+
+## Ordered FTS-Diffusion Drift Audit
+
+| protocol           | seeds | delta_mean | delta_min | delta_max | delta_over_q95_mean | violation_rate | last_price_mean | std_price_mean | acf_abs_r_lag1_mean |
+| ------------------ | ----- | ---------- | --------- | --------- | ------------------- | -------------- | --------------- | -------------- | ------------------- |
+| continuous_rollout | 6     | 0.0263     | 0.0263    | 0.0263    | 0.8697              | 0.0000         | 7085.0674       | 1701.5287      | 0.5296              |
+| independent_blocks | 6     | 0.0370     | 0.0370    | 0.0370    | 1.2225              | 1.0000         | 1248.8713       | 24.5274        | 0.5036              |

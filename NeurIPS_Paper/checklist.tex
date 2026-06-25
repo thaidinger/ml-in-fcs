@@ -6,7 +6,7 @@
 \item {\bf Claims}
     \item[] Question: Do the main claims made in the abstract and introduction accurately reflect the paper's contributions and scope?
     \item[] Answer: \answerYes{}.
-    \item[] Justification: The abstract and introduction state that this is a replication and diagnostic-extension study, not a new generator. They distinguish completed replication, real-asset calibration, predictive-alpha results, and the augmentation-selection benchmark from the remaining full FTS-Diffusion drift audit.
+    \item[] Justification: The abstract and introduction state that this is a replication and diagnostic-extension study, not a new generator. They distinguish the completed S\&P 500 downstream replication, GOOG/ZC=F boundary, real-asset calibration, ordered S\&P 500 FTS-Diffusion drift audit, predictive-alpha results, and augmentation-selection benchmark from broader generator-level claims.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer \answerNA{} means that the abstract and introduction do not include the claims made in the paper.
@@ -18,7 +18,7 @@
 \item {\bf Limitations}
     \item[] Question: Does the paper discuss the limitations of the work performed by the authors?
     \item[] Answer: \answerYes{}.
-    \item[] Justification: The limitations section discusses artifact dependence, incomplete full drift evaluation and train-time penalty selection, shorter non-S\&P histories, and the finite-dimensional nature of the drift diagnostic.
+    \item[] Justification: The limitations section discusses artifact dependence, the S\&P-only scope of the ordered FTS-Diffusion drift audit, remaining train-time penalty selection, shorter non-S\&P histories, and the finite-dimensional nature of the drift diagnostic.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer \answerNA{} means that the paper has no limitation while the answer \answerNo{} means that the paper has limitations, but those are not discussed in the paper. 
@@ -85,7 +85,7 @@
 \item {\bf Experimental setting/details}
     \item[] Question: Does the paper specify all the training and test details (e.g., data splits, hyperparameters, how they were chosen, type of optimizer) necessary to understand the results?
     \item[] Answer: \answerYes{}.
-    \item[] Justification: The main text specifies the data assets, chronological split structure, TATR protocol, LSTM settings, rollout variants, TMTR controls, fixed drift diagnostic choices, real-asset null construction, 500-seed controlled predictive-alpha setup, and 1000-seed augmentation-selection design.
+    \item[] Justification: The main text specifies the data assets, chronological split structure, TATR protocol, LSTM settings, rollout variants, TMTR controls, fixed drift diagnostic choices, ordered FTS audit design, real-asset null construction, 500-seed controlled predictive-alpha setup, and 1000-seed augmentation-selection design.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer \answerNA{} means that the paper does not include experiments.
@@ -96,7 +96,7 @@
 \item {\bf Experiment statistical significance}
     \item[] Question: Does the paper report error bars suitably and correctly defined or other appropriate information about the statistical significance of the experiments?
     \item[] Answer: \answerYes{}.
-    \item[] Justification: The main TATR comparison reports six-seed means and min/max bands, the SISC toy-data claim is based on an 18-run sweep, the real-asset calibration reports block-shuffle 5--95\% null bands, the predictive-alpha experiment reports 500-seed means with seed standard deviations for the main Sharpe comparison, and the selection benchmark reports 1000 paired seeds with win rate and normalized-MSE reduction.
+    \item[] Justification: The main TATR comparison reports six-seed means and min/max bands, the SISC toy-data claim is based on an 18-run sweep, the real-asset calibration reports block-shuffle 5--95\% null bands, the ordered FTS audit reports six-seed null-band violations, the predictive-alpha experiment reports 500-seed means with seed standard deviations for the main Sharpe comparison, and the selection benchmark reports 1000 paired seeds with win rate and normalized-MSE reduction.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer \answerNA{} means that the paper does not include experiments.
@@ -113,7 +113,7 @@
 \item {\bf Experiments compute resources}
     \item[] Question: For each experiment, does the paper provide sufficient information on the computer resources (type of compute workers, memory, time of execution) needed to reproduce the experiments?
     \item[] Answer: \answerYes{}.
-    \item[] Justification: The main paper now reports the hardware class, memory, CPU count, and measured runtimes for the primary six-seed S\&P 500 downstream batch, the 500-seed predictive-alpha diagnostic, and the 1000-seed selection benchmark; generated metadata files record the corresponding elapsed seconds.
+    \item[] Justification: The main paper now reports the hardware class, memory, CPU count, and measured runtimes for the primary six-seed S\&P 500 downstream batch, the ordered FTS audit, the 500-seed predictive-alpha diagnostic, and the 1000-seed selection benchmark; generated metadata files record the corresponding elapsed seconds.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer \answerNA{} means that the paper does not include experiments.

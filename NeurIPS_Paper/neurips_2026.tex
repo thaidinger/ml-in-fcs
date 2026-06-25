@@ -34,12 +34,12 @@
 \maketitle
 
 \begin{abstract}
-Financial time-series generators are often evaluated by marginal stylized facts and downstream forecasting gains, but those criteria can miss protocol artifacts and artificial conditional mean predictability. We study FTS-Diffusion, an ICLR 2024 model based on scale-invariant subsequence clustering, pattern-conditioned diffusion, and learned pattern evolution. Our replication finds that S\&P 500 Train-on-Augmentation-Test-on-Real (TATR) conclusions depend strongly on the synthetic rollout: a six-seed continuous-rollout protocol reaches a mean best improvement of $84.9\%$, whereas independent 252-day blocks never improve over baseline and finish $193.2\%$ worse. We also fail to reproduce the Appendix B.3 SISC toy targets, with best average per-unit DTW $0.0321$ versus $0.01$ and best interval IoU $0.6418$ versus $0.784$. As an extension, we implement a fixed predictable-drift diagnostic. On real S\&P 500, GOOG, and ZC=F holdouts, the statistic lies inside asset-specific block-shuffle null bands. In a 500-seed hidden-drift experiment, the same statistic tracks exploitable artificial alpha: at sign persistence $p=0.85$, mean out-of-sample Sharpe is $7.72$ versus $0.09$ for an iid-sign control. When incorporated as a 1000-seed augmentation-selection penalty, it lowers held-out normalized MSE from $1.0452$ to $1.0087$ versus marginal stylized selection and nearly eliminates high-persistence choices. The main lesson is that realistic-looking financial paths are not enough: synthetic finance benchmarks need protocol-explicit generation and direct checks for artificial alpha.
+Financial time-series generators are often evaluated by marginal stylized facts and downstream forecasting gains, but those criteria can miss protocol artifacts and artificial conditional mean predictability. We study FTS-Diffusion, an ICLR 2024 model based on scale-invariant subsequence clustering, pattern-conditioned diffusion, and learned pattern evolution. Our replication finds that S\&P 500 Train-on-Augmentation-Test-on-Real (TATR) conclusions depend strongly on the synthetic rollout: a six-seed continuous-rollout protocol reaches a mean best improvement of $84.9\%$, whereas independent 252-day blocks never improve over baseline and finish $193.2\%$ worse. We also fail to reproduce the Appendix B.3 SISC toy targets, with best average per-unit DTW $0.0321$ versus $0.01$ and best interval IoU $0.6418$ versus $0.784$. As an extension, we implement a fixed predictable-drift diagnostic. Real S\&P 500, GOOG, and ZC=F holdouts lie inside asset-specific block-shuffle null bands. Ordered FTS-Diffusion samples sharpen the protocol diagnosis: continuous S\&P 500 rollouts have zero null-band violations across six seeds, while independent blocks violate in all six. In a 500-seed hidden-drift experiment, the statistic tracks exploitable artificial alpha: at sign persistence $p=0.85$, mean out-of-sample Sharpe is $7.72$ versus $0.09$ for an iid-sign control. When incorporated as a 1000-seed augmentation-selection penalty, it lowers held-out normalized MSE from $1.0452$ to $1.0087$ versus marginal stylized selection. The main lesson is that realistic-looking financial paths are not enough: synthetic finance benchmarks need protocol-explicit generation and direct checks for artificial alpha.
 \end{abstract}
 
 \section{Introduction}
 
-Deep generative models are attractive for finance because historical market data are scarce, noisy, nonstationary, and not experimentally reproducible. Financial returns also exhibit heavy tails, weak raw-return autocorrelation, volatility clustering, and recurring shapes at irregular time scales \citep{cont2001stylized}. FTS-Diffusion \citep{huang2024fts} addresses the last property directly by discovering variable-length motifs and generating new trajectories motif by motif.
+Deep generative models are attractive for finance because historical market data are scarce, noisy, nonstationary, and not experimentally reproducible. Financial returns also exhibit heavy tails, weak raw-return autocorrelation, volatility clustering, and recurring shapes at irregular time scales \citep{cont2001stylized}. Sequence generators try to preserve temporal structure with adversarial, optimal-transport, and score-based objectives \citep{yoon2019timegan,xu2020cotgan,tashiro2021csdi}; financial generators additionally need to respect stylized facts and economically meaningful dependence \citep{wiese2020quant}. FTS-Diffusion \citep{huang2024fts} addresses this by discovering variable-length motifs and generating new trajectories motif by motif.
 
 This paper is a replication and diagnostic-extension study. We do not introduce a replacement generator. Instead, we test whether the published downstream gains are robust to rollout details, whether the SISC toy-data targets are reproducible, and whether a simple predictable-drift statistic catches artificial alpha that marginal stylized facts may miss. The answer is mixed: the architecture is well motivated, but the downstream evidence is fragile because continuous Markov-chain rollouts and independent yearly blocks answer different questions.
 
@@ -50,7 +50,7 @@ We therefore extend the evaluation with a predictable-drift diagnostic. Under a 
 we measure whether the next return $r_{t+1}$ has a nonzero linear conditional mean under a bounded test class. This is not a proof of market efficiency or absence of arbitrage. It is a finite, reproducible check for an important failure mode: a synthetic generator can match tails and volatility clustering while introducing a simple, exploitable conditional drift.
 
 \paragraph{Contributions.}
-We make four contributions: a replication summary on S\&P 500, GOOG, and corn futures (ZC=F); a six-seed isolation of TATR rollout sensitivity; a documented Appendix B.3 SISC replication gap; and a predictable-drift diagnostic calibrated on real assets, validated by a 500-seed predictive-alpha experiment, and incorporated in a 1000-seed augmentation-selection benchmark.
+We make four contributions: a six-seed S\&P 500 downstream replication isolating TATR rollout sensitivity; GOOG and corn-futures (ZC=F) SISC/architecture and diagnostic coverage with an explicit downstream-replication boundary; a documented Appendix B.3 SISC toy-data gap; and a predictable-drift diagnostic calibrated on real assets, applied to ordered FTS-Diffusion samples, validated by a 500-seed predictive-alpha experiment, and incorporated in a 1000-seed augmentation-selection benchmark.
 
 \section{Background: FTS-Diffusion}
 
@@ -82,7 +82,7 @@ We compare three ways to produce the synthetic augmentation path.
 These protocols use the same broad data budget but different Markov-chain connectivity. The distinction matters because the pattern-evolution module is the only component that carries long-horizon state across generated motifs.
 
 \paragraph{Compute.}
-The primary six-seed S\&P 500 downstream batch used stored SISC artifacts and PGM/PEM checkpoints and recorded $10{,}478$ seconds on an Apple M4 laptop with 10 CPU cores and 16 GB memory. The lightweight drift diagnostics used the same machine: the 500-seed predictive-alpha script recorded $2.83$ seconds, and the 1000-seed selection benchmark recorded $32.69$ seconds. These times exclude earlier exploratory runs not used for the reported tables.
+The primary six-seed S\&P 500 downstream batch used stored SISC artifacts and PGM/PEM checkpoints and recorded $10{,}478$ seconds on an Apple M4 laptop with 10 CPU cores and 16 GB memory. The lightweight drift diagnostics used the same machine: the ordered FTS audit recorded $629.82$ seconds with a four-thread cap, the 500-seed predictive-alpha script recorded $2.83$ seconds, and the 1000-seed selection benchmark recorded $32.69$ seconds. These times exclude earlier exploratory runs not used for the reported tables.
 
 \section{Replication results}
 
@@ -93,17 +93,19 @@ Our current S\&P 500 evidence has three layers. First, the stored result matrice
 In that long batch, continuous protocols reproduce strong paper-like reductions in downstream MAPE, but independent fixed blocks do not. The conclusion is not driven by a single lucky seed: the final continuous-chunked changes range from $-86.8\%$ to $-55.1\%$, while the final independent-block changes range from $+37.1\%$ to $+296.0\%$. The contrast is also visible in Figure~\ref{fig:tatr-protocol}: continuous trajectories eventually cross below the real-only baseline, while independent blocks worsen as augmentation increases.
 
 \begin{table}[h]
-  \caption{Six-seed S\&P 500 TATR summary. Percentages are relative to each protocol's no-augmentation baseline; lower MAPE is better. Continuous trajectory protocols reproduce large best improvements, whereas the independent-block rollout never improves over baseline and finishes much worse.}
+  \caption{Six-seed S\&P 500 TATR summary. Percentages are relative to each protocol's no-augmentation baseline; lower MAPE is better. Ranges are seed-wise final changes.}
   \label{tab:tatr-summary}
   \centering
-  \begin{tabular}{lrrlr}
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{lrrrr}
     \toprule
-    Protocol & Seeds & Baseline MAPE & Best change & Final change \\
+    Protocol & Baseline & Best change & Final change & Final range \\
     \midrule
-    Continuous chunked, 1-day & 6 & 0.0589 & $-84.9\%$ & $-65.2\%$ \\
-    Continuous + scaler refit, 1-day & 6 & 0.0630 & $-85.4\%$ & $-68.2\%$ \\
-    Independent fixed blocks, 1-day & 6 & 0.0646 & $0.0\%$ & $+193.2\%$ \\
-    Continuous chunked, 5-day & 6 & 0.0810 & $-85.2\%$ & $-77.5\%$ \\
+    Continuous chunked, 1-day & 0.0589 & $-84.9\%$ & $-65.2\%$ & [$-86.8,-55.1$]\% \\
+    Continuous + scaler refit, 1-day & 0.0630 & $-85.4\%$ & $-68.2\%$ & [$-84.3,-30.1$]\% \\
+    Independent fixed blocks, 1-day & 0.0646 & $0.0\%$ & $+193.2\%$ & [$+37.1,+296.0$]\% \\
+    Continuous chunked, 5-day & 0.0810 & $-85.2\%$ & $-77.5\%$ & [$-85.9,-58.5$]\% \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -216,9 +218,32 @@ Table~\ref{tab:drift-alpha} and Figure~\ref{fig:drift-extension} show the result
   \end{tabular}
 \end{table}
 
-\subsection{Incorporated selection benchmark}
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.96\linewidth]{06_drift_extension_evidence.pdf}
+  \caption{Drift versus no-drift evidence from the larger controlled experiments. The diagnostic tracks held-out artificial alpha, separates hidden-drift sign processes from real and iid controls, and improves augmentation selection by avoiding null violations and high-persistence candidates.}
+  \label{fig:drift-extension}
+\end{figure}
 
-The FTS-Diffusion use case is direct: report Equation~\ref{eq:delta-hat} on ordered samples from each rollout protocol, and do not select a protocol only because it improves TATR if its $\hat{\delta}$ lies outside the real/null band. We tested this recommendation in a controlled selection benchmark. For each of 1000 seeds, all candidate augmentations shared the same magnitude path but had different sign dynamics. A marginal stylized selector minimized a distance over volatility, tail, quantile, and absolute-return autocorrelation summaries; the drift-incorporated selector minimized
+\subsection{Ordered FTS audit and incorporated selection}
+
+The FTS-Diffusion use case is direct: report Equation~\ref{eq:delta-hat} on ordered samples from each rollout protocol, and do not select a protocol only because it improves TATR if its $\hat{\delta}$ lies outside the real/null band. We regenerated six S\&P 500 synthetic paths per protocol from stored FTS-Diffusion checkpoints, using 100 ordered 252-day blocks per seed and excluding artificial transitions between independent blocks. Table~\ref{tab:fts-drift-audit} shows that continuous rollouts stay inside the S\&P 500 null band in all six seeds, while independent fixed blocks violate it in all six. The audit therefore does not reject the continuous rollout that produces paper-like TATR gains; it identifies the independent reset protocol as both downstream-harmful and predictably drifted under this statistic.
+
+\begin{table}[t]
+  \caption{Ordered S\&P 500 FTS-Diffusion drift audit over six seeds and 25,200 generated prices per seed. The cutoff is the S\&P 500 held-out block-shuffle null 95th percentile, $q_{.95}=0.0303$.}
+  \label{tab:fts-drift-audit}
+  \centering
+  \begin{tabular}{lrrrr}
+    \toprule
+    Protocol & $\hat{\delta}$ & $\hat{\delta}/q_{.95}$ & Violations & Price std. \\
+    \midrule
+    Continuous rollout & 0.0263 & 0.87 & 0/6 & 1701.5 \\
+    Independent fixed blocks & 0.0370 & 1.22 & 6/6 & 24.5 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+We next test whether the same principle helps choose augmentations in a controlled benchmark. For each of 1000 seeds, all candidate augmentations shared the same magnitude path but had different sign dynamics. A marginal stylized selector minimized a distance over volatility, tail, quantile, and absolute-return autocorrelation summaries; the drift-incorporated selector minimized
 \begin{equation}
   d_{\mathrm{styl}} +
   0.25\left[\hat{\delta}/q^{\mathrm{real}}_{.95}-1\right]_+^2,
@@ -253,16 +278,9 @@ Table~\ref{tab:drift-selection} shows that incorporating the diagnostic changes 
 \end{equation}
 The penalty must be computed on ordered return sequences. Applying it across randomly shuffled mini-batches would destroy the time ordering and should only be logged as a proxy, not as the final diagnostic.
 
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=0.96\linewidth]{06_drift_extension_evidence.pdf}
-  \caption{Drift versus no-drift evidence from the larger controlled experiments. The diagnostic tracks held-out artificial alpha, separates hidden-drift sign processes from real and iid controls, and improves augmentation selection by avoiding null violations and high-persistence candidates.}
-  \label{fig:drift-extension}
-\end{figure}
-
 \section{Limitations and broader impact}
 
-Our replication is constrained by the information and compute available for this study. Some runs use reference checkpoints rather than a full fresh retraining of all modules. The drift extension is calibrated on real assets and validated in controlled predictive-alpha and augmentation-selection experiments, but the full FTS-Diffusion drift audit and train-time validation selection of $\lambda$ remain to be run on ordered generated samples from every rollout protocol. GOOG and ZC=F have shorter histories than S\&P 500, so the downstream split used for S\&P 500 is not directly portable without changing the question being asked.
+Our replication is constrained by the information and compute available for this study. Some runs use reference checkpoints rather than a full fresh retraining of all modules, and the ordered FTS-Diffusion drift audit is limited to the S\&P 500 checkpoints and the fixed diagnostic in Equation~\ref{eq:delta-hat}. Train-time validation selection of $\lambda$ remains to be run before claiming an optimized drift-regularized generator. GOOG and ZC=F have shorter histories than S\&P 500, so the downstream split used for S\&P 500 is not directly portable without changing the question being asked.
 
 The predictable-drift diagnostic is deliberately narrow. It tests a fixed finite-dimensional feature map, not every admissible trading strategy, and it is not a proof of no-arbitrage. Its strength is reproducibility: the statistic is simple, closed-form, and hard to tune after seeing the result.
 
