@@ -47,3 +47,9 @@ Common data unless noted: `fts-diffusion-ref/data/data_toy_l10-20_*`, series len
 | Output folder | Settings key | What was varied | Do not rerun unless changing |
 |---|---|---|---|
 | `04_presentation_figures` | `presentation_figures | source=organized generated outputs | script=scripts/generate_presentation_figures.py | figures=13` | Slide-ready visual summaries, including pattern-diffusion mechanism visuals, matched-handoff PDF, and GIF animations. | Upstream result tables, presentation story, or visual style. |
+
+## Original Claim Audit
+
+| Output folder | Settings key | What was varied | Do not rerun unless changing |
+|---|---|---|---|
+| `05_original_claim_reproduction_audit` | `claim_audit | source=organized generated outputs | script=scripts/build_reproduction_failure_audit.py | claims=TATR+TMTR+B3` | Claim-by-claim synthesis of what could not be reproduced and why. | Upstream result tables, original-paper claim framing, or failure classification. |

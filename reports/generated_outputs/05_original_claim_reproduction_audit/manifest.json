@@ -1,0 +1,19 @@
+{
+  "output": "/Users/ericshao/Documents/GitHub/ml-in-fcs/reports/generated_outputs/05_original_claim_reproduction_audit",
+  "source_tables": [
+    "01_sp500_downstream_replication/07_replication_report/tables/tatr_summary.csv",
+    "01_sp500_downstream_replication/11_long_replication_batch/long_tatr_protocol_summary.csv",
+    "01_sp500_downstream_replication/11_long_replication_batch/long_tmtr_protocol_summary.csv",
+    "03_appendix_b3_simulated_sisc/14_b3_sisc_simulated_replication/fig8_one_pattern_metrics.csv",
+    "03_appendix_b3_simulated_sisc/15_b3_sisc_simulated_replication_max20/fig8_one_pattern_metrics.csv",
+    "03_appendix_b3_simulated_sisc/16_b3_sisc_sweep/manifest.json"
+  ],
+  "files": [
+    "README.md",
+    "claim_reproduction_audit.csv",
+    "audit_metrics.json",
+    "original_claim_reproduction_audit.png",
+    "original_claim_reproduction_audit.pdf",
+    "manifest.json"
+  ]
+}

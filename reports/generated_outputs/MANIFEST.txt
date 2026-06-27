@@ -68,5 +68,12 @@ Top level
 - 13_specific_segment_diffusion_goog_idx000.gif
 - specific_segment_diffusion_manifest.json
 
+05_original_claim_reproduction_audit/
+- README.md
+- manifest.json
+- claim_reproduction_audit.csv
+- audit_metrics.json
+- original_claim_reproduction_audit.{png,pdf}
+
 Removed stale content
 - All `.DS_Store` files under reports/generated_outputs

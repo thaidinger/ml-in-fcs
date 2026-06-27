@@ -10,6 +10,7 @@ This directory contains generated replication artifacts and diagnostics. It is o
 | `02_goog_zcf_real_asset_sisc/` | GOOG and ZC=F real-asset SISC pattern-library artifacts and comparison notes. | `02_goog_zcf_real_asset_sisc/README.md` |
 | `03_appendix_b3_simulated_sisc/` | Appendix B.3 simulated-data SISC replication attempts and sweep results. | `03_appendix_b3_simulated_sisc/README.md` |
 | `04_presentation_figures/` | Slide-ready visual summaries generated from the organized result tables. | `04_presentation_figures/README.md` |
+| `05_original_claim_reproduction_audit/` | Claim-by-claim audit of original-paper results that were not reproduced. | `05_original_claim_reproduction_audit/README.md` |
 
 Top-level files:
 
@@ -34,6 +35,10 @@ GOOG and corn futures (`ZC=F`) SISC pattern libraries were generated with `K=11`
 ### Appendix B.3 Simulated SISC
 
 The B.3-specific simulated-data replication attempts did not reproduce the paper's reported values. The best sweep result reached average per-unit DTW `0.0321` versus the paper's `0.01`; the best author-style interval IoU reached `0.6418` versus the paper's `0.784`.
+
+### Original Claim Audit
+
+The original-paper reproduction audit lists the precise failed claims, the closest local evidence, and the failing mechanism. The main failures are: S&P 500 TATR is not uniquely recovered from rollout details, GOOG/ZC=F author-faithful TATR is blocked by the released split logic, and Appendix B.3 lacks the exact toy-generator and metric details needed for exact recovery.
 
 ## Hygiene
 

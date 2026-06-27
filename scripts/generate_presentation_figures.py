@@ -168,6 +168,7 @@ def plot_tatr_protocol_contrast() -> None:
     }
 
     fig, ax = plt.subplots(figsize=(13.2, 7.4))
+    endpoints: dict[str, tuple[float, float]] = {}
     for protocol, group in df.groupby("protocol"):
         group = group.sort_values("augmentation_blocks")
         x = group["augmentation_blocks"].to_numpy()
@@ -176,18 +177,45 @@ def plot_tatr_protocol_contrast() -> None:
         ymax = group["max_pct"].to_numpy()
         ax.plot(x, y, marker="o", linewidth=2.6, color=colors[protocol], label=labels[protocol])
         ax.fill_between(x, ymin, ymax, color=colors[protocol], alpha=0.13)
+        endpoints[protocol] = (float(x[-1]), float(y[-1]))
 
     ax.axhline(0, color="#111827", linewidth=1)
-    ax.axhline(-17.9, color=COLORS["purple"], linestyle="--", linewidth=1.8, label="Paper S&P target: -17.9%")
-    ax.set_title("TATR Outcome Depends Strongly on Synthetic-Series Protocol", loc="left", fontweight="bold")
-    ax.set_xlabel("Synthetic augmentation blocks")
+    ax.axhline(-17.9, color=COLORS["purple"], linestyle="--", linewidth=1.8, label="Original S&P 100-year target: -17.9%")
+    ax.annotate(
+        "original Fig. 6(b)\nfinal target",
+        xy=(8, -17.9),
+        xytext=(18, -45),
+        textcoords="data",
+        color=COLORS["purple"],
+        fontsize=10,
+        arrowprops={"arrowstyle": "->", "color": COLORS["purple"], "linewidth": 1.1},
+    )
+    ax.set_title("TATR Is Not Recovered Uniquely Without Rollout Details", loc="left", fontweight="bold")
+    ax.set_xlabel("Synthetic augmentation years (252-day blocks)")
     ax.set_ylabel("MAPE change vs baseline (%)")
     ax.grid(axis="y")
     ax.set_ylim(-105, 230)
     ax.legend(ncol=2, loc="upper left")
-    ax.text(103, 193, "Released-code style\ngets worse", color=COLORS["red"], fontsize=11, ha="right", va="center")
-    ax.text(103, -66, "Continuous protocols\nlook paper-like", color=COLORS["green"], fontsize=11, ha="right", va="center")
-    add_caption(fig, "Six seeds from long replication batch. Shaded bands show min/max across seeds.")
+    endpoint_labels = {
+        "continuous_chunked": ("continuous final\n-65.2%", (72, -54), COLORS["green"]),
+        "continuous_cross_refit_scaler": ("scaler-refit final\n-68.2%", (54, -92), COLORS["blue"]),
+        "independent_fixed": ("independent-block final\n+193.2%", (84, 210), COLORS["red"]),
+    }
+    for protocol, (text, xytext, color) in endpoint_labels.items():
+        x_last, y_last = endpoints[protocol]
+        ax.annotate(
+            text,
+            xy=(x_last, y_last),
+            xytext=xytext,
+            textcoords="data",
+            color=color,
+            fontsize=10.5,
+            fontweight="bold",
+            ha="left",
+            va="center",
+            arrowprops={"arrowstyle": "->", "color": color, "linewidth": 1.1},
+        )
+    add_caption(fig, "Six seeds from long replication batch. Shaded bands show min/max across seeds; negative means lower MAPE.")
     save(fig, "02_tatr_protocol_contrast")
 
 
