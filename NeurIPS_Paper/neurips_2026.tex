@@ -14,6 +14,10 @@
 \usepackage{microtype}
 \usepackage{xcolor}
 \usepackage{graphicx}
+\usepackage{listings}
+
+\lstset{basicstyle=\ttfamily\footnotesize,breaklines=true,frame=single,
+  columns=fullflexible,keepspaces=true,xleftmargin=4pt}
 
 \hypersetup{hidelinks}
 
@@ -36,14 +40,14 @@
 \maketitle
 
 \begin{abstract}
-Financial time-series generators are often evaluated by marginal stylized facts and downstream forecasting gains, but those criteria can miss protocol artifacts and artificial conditional mean predictability. We study FTS-Diffusion, an ICLR 2024 model based on scale-invariant subsequence clustering, pattern-conditioned diffusion, and learned pattern evolution. We could not reproduce the reported Train-on-Augmentation-Test-on-Real (TATR) reductions from the released materials as a unique author-specified result. On S\&P 500, a six-seed continuous-rollout protocol reaches a mean best improvement of $84.9\%$, whereas independent 252-day blocks never improve over baseline and finish $193.2\%$ worse. We also could not reproduce the Appendix B.3 SISC toy targets, with best average per-unit DTW $0.0321$ versus $0.01$ and best interval IoU $0.6418$ versus $0.784$. As an extension, we implement a fixed predictable-drift diagnostic. Real S\&P 500, GOOG, and ZC=F holdouts lie inside asset-specific block-shuffle null bands. Ordered FTS-Diffusion samples sharpen the protocol diagnosis: continuous S\&P 500 rollouts have zero null-band violations across six seeds, while independent blocks violate in all six. In a 500-seed hidden-drift experiment, the statistic tracks exploitable artificial alpha: at sign persistence $p=0.85$, mean out-of-sample Sharpe is $7.72$ versus $0.09$ for an iid-sign control. When incorporated as a 1000-seed augmentation-selection penalty, it lowers held-out normalized MSE from $1.0452$ to $1.0087$ versus marginal stylized selection. The main lesson is that realistic-looking financial paths are not enough: synthetic finance benchmarks need protocol-explicit generation and direct checks for artificial alpha.
+We revisit FTS-Diffusion (ICLR 2024), a financial time-series generator built from scale-invariant subsequence clustering (SISC), pattern-conditioned diffusion, and learned pattern evolution, and try to reproduce it from the released code. In our runs the released sampling pipeline is near-degenerate: synthetic S\&P 500 paths are one repeated motif tiled into an almost perfectly linear price ramp (linear-fit $R^2 \approx 1.0$), independent runs are nearly identical, and synthetic return volatility is about $20\times$ too small. We trace this to three choices in the released sampling code: a deterministic argmax rollout of the pattern chain, a one-unit decoder hidden state, and a commented-out magnitude normalization. We are explicit about confounds we cannot rule out: no checkpoints are shipped, and our training budget is reduced. Consistent with degeneracy, a continuous-rollout Train-on-Augmentation-Test-on-Real (TATR) setup appears to improve S\&P 500 forecasting by up to $85\%$, yet the same protocol never beats its baseline on GOOG or ZC=F. This non-transfer is what a coincidental scale match would produce, not useful augmentation. On the released artifacts the authors' own Kolmogorov--Smirnov and Anderson--Darling return tests cleanly separate synthetic from real in essentially every window, so a simple return check detects the degeneracy that the downstream MAPE misses. We also do not reproduce the Appendix B.3 SISC toy targets. As a predeclared extension we add a predictable-drift diagnostic that calibrates on real assets, tracks exploitable artificial alpha in a 500-seed experiment, and improves a 1000-seed augmentation-selection benchmark. We frame these as observations from one reproduction attempt, not a verdict on the method.
 \end{abstract}
 
 \section{Introduction}
 
 Deep generative models are attractive for finance because historical market data are scarce, noisy, nonstationary, and not experimentally reproducible. Financial returns also exhibit heavy tails, weak raw-return autocorrelation, volatility clustering, and recurring shapes at irregular time scales \citep{cont2001stylized}. Sequence generators try to preserve temporal structure with adversarial, optimal-transport, and score-based objectives \citep{yoon2019timegan,xu2020cotgan,tashiro2021csdi}; financial generators additionally need to respect stylized facts and economically meaningful dependence \citep{wiese2020quant}. FTS-Diffusion \citep{huang2024fts} addresses this by discovering variable-length motifs and generating new trajectories motif by motif.
 
-This paper is a replication and diagnostic-extension study. We do not introduce a replacement generator. Instead, we test whether the published downstream gains are robust to rollout details, whether the SISC toy-data targets are reproducible, and whether a simple predictable-drift statistic catches artificial alpha that marginal stylized facts may miss. The answer is mixed: the architecture is well motivated, but the downstream evidence is fragile because continuous Markov-chain rollouts and independent yearly blocks answer different questions.
+This is a replication and diagnostic-extension study, not a new generator. We test whether the published downstream gains are robust to rollout and evaluation details, whether the SISC toy-data targets are reproducible, and whether a simple predictable-drift statistic catches artificial alpha that marginal stylized facts miss. The architecture is well motivated, but the released sampling pipeline, in our hands, produces degenerate artifacts: the synthetic series collapses to a near-linear price ramp built from one repeated motif (Section~\ref{sec:degeneracy}). Under that lens the apparent S\&P 500 gain looks less like robust augmentation than a coincidence that does not transfer across assets. We cannot fully separate this from a known confound: no trained checkpoints are released, and our training budget is shorter than the released defaults.
 
 We therefore extend the evaluation with a predictable-drift diagnostic. Under a fixed information vector
 \begin{equation}
@@ -52,7 +56,7 @@ We therefore extend the evaluation with a predictable-drift diagnostic. Under a 
 we measure whether the next return $r_{t+1}$ has a nonzero linear conditional mean under a bounded test class. This is not a proof of market efficiency or absence of arbitrage. It is a finite, reproducible check for an important failure mode: a synthetic generator can match tails and volatility clustering while introducing a simple, exploitable conditional drift.
 
 \paragraph{Contributions.}
-We make four contributions: a six-seed S\&P 500 downstream replication isolating TATR rollout sensitivity; GOOG and corn-futures (ZC=F) SISC/architecture and diagnostic coverage with an explicit downstream-replication boundary; a documented Appendix B.3 SISC toy-data gap; and a predictable-drift diagnostic calibrated on real assets, applied to ordered FTS-Diffusion samples, validated by a 500-seed predictive-alpha experiment, and incorporated in a 1000-seed augmentation-selection benchmark.
+We make five contributions. (i) A code-level diagnosis of the released sampling pipeline (Section~\ref{sec:degeneracy}): three specific choices that drive the synthetic series to a near-degenerate linear ramp, plus the underspecifications we had to resolve. (ii) A six-seed S\&P 500 TATR study, with the cross-asset observation that the continuous-rollout gain does not transfer to GOOG or corn futures (ZC=F), which we read as a scale coincidence. (iii) A return-distribution check showing that the authors' own Kolmogorov--Smirnov and Anderson--Darling tests detect the degenerate output that the downstream MAPE still rewards. (iv) A documented Appendix B.3 SISC toy-data gap. (v) A fixed predictable-drift diagnostic, calibrated on real assets, applied to ordered FTS-Diffusion samples, validated by a 500-seed predictive-alpha experiment, and used in a 1000-seed augmentation-selection benchmark. Throughout, we separate claims about the released artifacts from what would need the authors' checkpoints to settle.
 
 \section{Background: FTS-Diffusion}
 
@@ -86,7 +90,112 @@ These protocols use the same broad data budget but different Markov-chain connec
 \paragraph{Compute.}
 The primary six-seed S\&P 500 downstream batch used stored SISC artifacts and PGM/PEM checkpoints and recorded $10{,}478$ seconds on an Apple M4 laptop with 10 CPU cores and 16 GB memory. The lightweight drift diagnostics used the same machine: the ordered FTS audit recorded $629.82$ seconds with a four-thread cap, the 500-seed predictive-alpha script recorded $2.83$ seconds, and the 1000-seed selection benchmark recorded $32.69$ seconds. These times exclude earlier exploratory runs not used for the reported tables.
 
+\section{Degeneracy of the released generation pipeline}
+\label{sec:degeneracy}
+
+We reproduce FTS-Diffusion end to end from the released code. Before downstream scores, we report what the generator actually produces, since this conditions every later interpretation. In our runs the released sampling path is near-degenerate: the synthetic price series is a single repeated motif tiled into an almost perfectly straight line. We give three jointly responsible choices, with file references into our working copy (\texttt{fts-diffusion-ref/}), then show the degeneracy on the saved trajectories and the return distribution. These are observations about the released artifacts under our setup, not proofs about the method; Section~\ref{sec:degeneracy:confounds} lists the confounds we cannot rule out.
+
+\subsection{Three choices in the released sampling code}
+\label{sec:degeneracy:choices}
+
+\paragraph{(1) Deterministic argmax rollout of the pattern chain.} The pattern-evolution module (PEM) is rolled out by taking \texttt{argmax} for the next pattern and the next length, and the raw regression mean for the next magnitude, with no sampling (\texttt{fts-diffusion-ref/models/sampling.py}, lines 30, 33, 34):
+\begin{lstlisting}
+pred_pattern   = torch.argmax(probabilities_pattern, dim=1).unsqueeze(0)
+pred_length    = torch.argmax(probabilities_length,  dim=1).unsqueeze(0) + l_min
+pred_magnitude = pred[:, n_patterns+range_length:].float()
+\end{lstlisting}
+An autoregressive map $\text{state}_{m+1}=f(\text{state}_m)$ that is deterministic must, iterated from a fixed initial state, converge to a fixed point or a short cycle. The rollout policy (greedy vs.\ sampling) is not specified in the paper, so this is a defensible reading of the release, but it removes the stochasticity the Markov-chain description suggests.
+
+\paragraph{(2) One-unit decoder hidden state.} The Scaling-AE decoder is an LSTM whose hidden dimension is fed from \texttt{pgm\_params['sae\_hidden\_dim']}, set to $1$ in the released configuration (\texttt{model\_params.py}; the decoder LSTM is defined in \texttt{scaling\_autoencoder.py}). With a single hidden unit the decoder has almost no capacity, and we observe it collapsing to a fixed output that ignores both the conditioning pattern and the diffusion latent.
+
+\paragraph{(3) Commented-out magnitude normalization.} The sampling step that would rescale the generated shape to unit range before multiplying by the magnitude $\beta$ is commented out (\texttt{sampling.py}, lines 53--55), so the emitted segment has magnitude $\beta\times(\text{whatever range the decoder produced})$ rather than $\beta$. In our runs that range is on the order of $0.07$, far below the intended scale, which removes the magnitude information $\beta$ was meant to carry.
+
+\subsection{What the saved trajectories look like}
+\label{sec:degeneracy:observed}
+
+Figure~\ref{fig:degeneracy} contrasts a real S\&P 500 path with one released-pipeline synthetic path. The synthetic series is visually a straight line; a least-squares linear fit gives $R^2\approx0.99999$. Three quantitative observations accompany the figure. First, independent runs of a configuration are nearly identical, consistent with a deterministic rollout. Second, the PEM state sequence collapses (Table~\ref{tab:pem-collapse}): on S\&P 500 a single pattern is used in $99.6\%$ of segments (a fixed point), while GOOG and ZC=F settle into period-2 cycles. Third, inspecting the trained PGM decoder pattern by pattern, the decoder output is near-constant across all patterns (cross-pattern standard deviation $<0.001$): an up-trend pattern and a down-trend pattern yield essentially the same segment. The net effect is that one tiny upward-creeping segment is tiled across the horizon, which is exactly the linear ramp in Figure~\ref{fig:degeneracy}.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{05_degeneracy_sp500.pdf}
+  \caption{Released-pipeline output on S\&P 500. (a) Real close prices show rich structure. (b) One synthetic continuous-rollout path is almost perfectly linear (linear-fit $R^2\approx0.99999$). (c) Daily-return density (log scale): synthetic returns concentrate near a single value with standard deviation about $20\times$ smaller than real returns. We show one representative run; runs are nearly identical.}
+  \label{fig:degeneracy}
+\end{figure}
+
+\begin{table}[h]
+  \caption{PEM state-sequence collapse under the deterministic rollout, from saved \texttt{run\_*\_states.npy}. ``Dominant pattern share'' is the fraction of generated segments using the most frequent pattern.}
+  \label{tab:pem-collapse}
+  \centering
+  \small
+  \begin{tabular}{lrrl}
+    \toprule
+    Asset ($K$) & Segments & Dominant pattern share & Regime \\
+    \midrule
+    S\&P 500 ($14$) & 2520 & $99.6\%$ & fixed point \\
+    GOOG ($11$) & 2520 & $50.0\%$ & period-2 cycle \\
+    ZC=F ($11$) & 1867 & $50.0\%$ & period-2 cycle \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{A return-distribution check detects the degeneracy}
+\label{sec:degeneracy:returns}
+
+A natural and direct check is the authors' own return-distribution test. Following their \texttt{distribution\_tests} routine, we form simple returns and compare real against synthetic with a Kolmogorov--Smirnov (KS) two-sample test and an Anderson--Darling (AD) $k$-sample test, where a higher $p$-value means the two return samples are harder to distinguish. The paper reports values consistent with indistinguishability (KS around $0.32$, AD around $0.12$). On the released artifacts the test instead separates the two cleanly (Table~\ref{tab:ks-ad}): across $300$ windows per asset and protocol the synthetic and real returns differ in essentially every window, with mean KS $p$-values at the $10^{-4}$ to $10^{-7}$ level and no window passing at $p>0.05$. The mechanism is visible in the return moments: the released synthetic series has $4$ to $60\times$ too little return volatility, because a near-linear ramp has almost no daily variation. The point is not that we failed to match a number: a degenerate generator is expected to fail a distributional test. It is that this simple return check is \emph{not} blind to the degeneracy, in contrast to the downstream price-MAPE of Section~\ref{sec:results} that the same degenerate output can still improve.
+
+\begin{table}[h]
+  \caption{Return-distribution check on the released artifacts. ``Mean KS $p$'' and ``\% indist.'' are over 300 windows of length 60; higher is more similar (the paper reports KS around $0.32$). ``Real/Syn.\ sd'' are daily-return standard deviations. \texttt{single} is a continuous rollout, \texttt{authors} the independent-block protocol.}
+  \label{tab:ks-ad}
+  \centering
+  \small
+  \begin{tabular}{llrrrr}
+    \toprule
+    Asset & Protocol & Real sd & Syn.\ sd & Mean KS $p$ & \% indist. \\
+    \midrule
+    S\&P 500 & authors & 0.0109 & 0.0045 & $9\times10^{-4}$ & $0$ \\
+    S\&P 500 & single  & 0.0109 & 0.00046 & $4\times10^{-7}$ & $0$ \\
+    GOOG & authors & 0.0184 & 0.0026 & $6\times10^{-5}$ & $0$ \\
+    GOOG & single  & 0.0184 & 0.00029 & $4\times10^{-7}$ & $0$ \\
+    ZC=F & authors & 0.0181 & 0.0028 & $2\times10^{-5}$ & $0$ \\
+    ZC=F & single  & 0.0181 & 0.00041 & $1\times10^{-6}$ & $0$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Underspecifications we had to resolve}
+\label{sec:degeneracy:underspec}
+
+Several choices that matter for the result are not pinned down by the paper. Table~\ref{tab:underspec} lists the ones we encountered, separating the three that are load-bearing for the degeneracy above from the compute-driven confounds and the remaining setup choices. We kept the released values wherever they existed, so that the run reflects the artifact as published rather than our preferences. We note this is an audit aid, not an accusation: underspecification is common, but here it coincides with the failure modes.
+
+\begin{table}[h]
+  \caption{Paper-vs-release underspecifications we resolved. ``Released'' marks a value shipped in the released configuration that we kept; ``ours'' marks a choice we had to make.}
+  \label{tab:underspec}
+  \centering
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{p{4.7cm}p{1.4cm}p{4.2cm}p{2.7cm}}
+    \toprule
+    Design choice & In paper? & Value used & Note \\
+    \midrule
+    Scaling-AE decoder hidden dim & no & $1$ (released) & load-bearing \\
+    PEM rollout policy & no & argmax (released) & load-bearing \\
+    Magnitude normalization at sampling & implied & commented out (released) & load-bearing \\
+    PGM / PEM training epochs & no & $30$ / $60$ (ours; released $400$ / $1000$) & confound \\
+    PCDM diffusion steps & no & $30$ (ours; released $100$) & confound \\
+    SISC $k$-means seed & no & $42$ (released) & shared seed \\
+    GOOG / ZC=F downstream split & S\&P only & $62.5\%$ train (ours) & cross-asset parity \\
+    Initial segment for generation & no & first test segment / random (ours) & protocol switch \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Confounds and what we cannot rule out}
+\label{sec:degeneracy:confounds}
+
+We are explicit that the evidence above concerns the released artifacts as configured and as trained in our hands, not the method in principle. Two confounds prevent a stronger claim. First, no trained checkpoints are shipped with the release, so every reproduction retrains from the released scripts and we cannot compare against the authors' own generations. Second, our training budget is reduced relative to the released defaults (PGM $30$ vs.\ $400$ epochs, PEM $60$ vs.\ $1000$, PCDM $30$ vs.\ $100$ steps), a compute-driven choice that a reviewer can reasonably challenge. The degeneracy is therefore consistent with at least three non-exclusive explanations that we have not fully separated: undertraining, an unlucky single seed, and the one-unit decoder capacity. A full-budget retrain across seeds would falsify or confirm the undertraining hypothesis; we flag it as the natural next experiment and do not assert a method-level conclusion without it. Given how unusual a one-unit decoder hidden state is for a published generative model, it would also be reasonable to ask the authors directly whether that value, and the commented-out magnitude normalization, correspond to the configuration behind the paper's headline results.
+
 \section{Replication results}
+\label{sec:results}
 
 \subsection{TATR depends on the synthetic-series protocol}
 
@@ -119,13 +228,13 @@ In that long batch, continuous protocols reproduce strong paper-like reductions 
   \label{fig:tatr-protocol}
 \end{figure}
 
-The mechanism is visible in the synthetic price levels. In the long-batch diagnostics, continuous synthetic trajectories start near 1253 and end near 7085 on average, with mean price level 4138. Independent blocks start from the same level but repeatedly reset, ending near 1249 with mean level 1214. The continuous protocol therefore drifts through the scale of the real test period, while independent blocks remain near the early initial level. This explains why the downstream LSTM can benefit from continuous synthetic augmentation while being harmed by independent blocks.
+The mechanism is visible in the synthetic price levels. Continuous trajectories start near 1253 and end near 7085 (mean level 4138); independent blocks start from the same level but repeatedly reset, ending near 1249 (mean 1214). The continuous protocol thus drifts its near-linear ramp through the scale of the upward-trending S\&P 500 test period, so percentage error can fall simply because synthetic and real price levels overlap, not because the dynamics are informative. Independent blocks stay near the initial level, the overlap never happens, and error grows. Read with Section~\ref{sec:degeneracy}, this is a scale effect, not useful augmentation. The cross-asset evidence below is the cleaner test.
 
 TMTR controls make the replication conclusion more conservative. In the six-seed long batch, the reference TMTR curve reaches a best mean improvement of $26.8\%$ but finishes $359.7\%$ worse; a continuous offset-30 control reaches a best improvement of $50.0\%$ and finishes $17.8\%$ better; a continuous offset-50 control finishes $752.0\%$ worse. Thus the evidence is not ``synthetic data always helps.'' It is narrower: a particular continuous TATR price-level rollout can create large apparent gains, while other augmentation and evaluation choices do not support the same conclusion.
 
-This is the precise S\&P 500 non-reproduction. The reported reduction is not recovered as a unique consequence of the released downstream protocol. It fails under the independent 252-day reset path that we can identify as the author-style route, but it succeeds under a continuous pattern-evolution rollout. The failing interface is therefore the synthetic-path construction: Markov-chain rollout, initialization, block slicing, scaler fitting, and warm-up windows are not specified tightly enough to determine the published TATR curve. We interpret this as protocol sensitivity, not as a claim of misconduct in the original work.
+We make no claim of misconduct; the available generation details do not pin down the downstream result uniquely. We note only that, once the generator is seen to be degenerate, the most economical reading of the S\&P 500 gain is a scale coincidence rather than augmentation that works under the right protocol. Either way, a reproducible benchmark should treat the Markov-chain rollout, initialization, block slicing, scaler fitting, and warm-up windows as first-class parameters, and should not rest a positive conclusion on downstream MAPE for a single trending asset.
 
-The GOOG and ZC=F replication boundary is also important. We regenerated the stated real-asset SISC and architecture artifacts for GOOG and ZC=F with $K=11$, $l_{\min}=10$, and $l_{\max}=21$, but a strict author-faithful downstream TATR rerun is blocked by the released S\&P-style split logic: it consumes $252\times5=1260$ held-out initialization points, whereas the GOOG and ZC=F 80/20 held-out windows contain only 744 and 963 points. Running the author-style split would therefore require changing the train/test definition. Stored matrices for these assets also contradict the paper trend: GOOG \texttt{authors} finishes $1003.1\%$ worse and ZC=F \texttt{authors} finishes $75.1\%$ worse. We therefore treat GOOG and ZC=F as covered for SISC/architecture setup and real-asset diagnostics, but not as author-faithful downstream replications.
+GOOG and ZC=F test the coincidence reading most directly. We regenerated the stated real-asset SISC and architecture artifacts for both with $K=11$, $l_{\min}=10$, and $l_{\max}=21$. A strict author-faithful downstream TATR rerun is blocked by the released S\&P-style split logic, which consumes $252\times5=1260$ held-out initialization points whereas the GOOG and ZC=F 80/20 held-out windows contain 744 and 963 points, so we adapted the split while keeping the proportions comparable. This changes the absolute MAPE level but not the sign of the augmentation effect, since every percentage is computed within the same split relative to that protocol's own no-augmentation baseline. Under that within-split comparison the effect is negative on both assets and for both protocol families. The independent-block (\texttt{authors}) protocol finishes $1003.1\%$ worse on GOOG and $75.1\%$ worse on ZC=F. Crucially, the \emph{continuous} rollout that appears to help on S\&P 500 does not transfer: its best point over the whole sweep equals the no-augmentation baseline (it never beats it), and it finishes about $106\%$ worse on GOOG and $179\%$ to $431\%$ worse on ZC=F depending on the variant. A protocol that helped because the generator carried useful structure should not flip sign across assets; the continuous gain confined to the one strongly trending asset is the signature of a scale coincidence, not of augmentation value. We therefore treat GOOG and ZC=F as covered for SISC/architecture setup and real-asset diagnostics rather than author-faithful downstream replications, but the within-split sign does not depend on author-faithfulness.
 
 \subsection{SISC toy-data replication gap}
 
@@ -282,7 +391,7 @@ The penalty must be computed on ordered return sequences. Applying it across ran
 
 \section{Limitations and broader impact}
 
-Our replication is constrained by the information and compute available for this study. Some runs use reference checkpoints rather than a full fresh retraining of all modules, and the ordered FTS-Diffusion drift audit is limited to the S\&P 500 checkpoints and the fixed diagnostic in Equation~\ref{eq:delta-hat}. Train-time validation selection of $\lambda$ remains to be run before claiming an optimized drift-regularized generator. GOOG and ZC=F have shorter histories than S\&P 500, so the downstream split used for S\&P 500 is not directly portable without changing the question being asked.
+Our replication is constrained by the information and compute available for this study. Most importantly, the degeneracy analysis of Section~\ref{sec:degeneracy} concerns the released artifacts as configured and as trained in our hands: no checkpoints are shipped, and our training budget is reduced relative to the released defaults. We have not run the full-budget, multi-seed retrain that would separate undertraining from an architectural cause, so we deliberately phrase those findings as observations about the release rather than conclusions about the method. Some runs use reference checkpoints rather than a full fresh retraining of all modules, and the ordered FTS-Diffusion drift audit is limited to the S\&P 500 checkpoints and the fixed diagnostic in Equation~\ref{eq:delta-hat}. Train-time validation selection of $\lambda$ remains to be run before claiming an optimized drift-regularized generator. GOOG and ZC=F have shorter histories than S\&P 500, so the downstream split used for S\&P 500 is not directly portable without changing the question being asked; we mitigate this by comparing within split, relative to each protocol's own baseline.
 
 The predictable-drift diagnostic is deliberately narrow. It tests a fixed finite-dimensional feature map, not every admissible trading strategy, and it is not a proof of no-arbitrage. Its strength is reproducibility: the statistic is simple, closed-form, and hard to tune after seeing the result.
 
@@ -290,7 +399,7 @@ Synthetic financial data can be beneficial for stress testing, augmentation, and
 
 \section{Conclusion}
 
-FTS-Diffusion has the right inductive bias for financial time series: variable-length motifs, pattern-conditioned diffusion, and learned motif evolution. Our replication suggests that the architecture is more robust than the downstream evaluation protocol. Continuous synthetic rollouts can create strong TATR improvements, while independent fixed blocks can fail badly under the same broad data budget. This protocol sensitivity motivates a stricter evaluation standard. Future synthetic-finance benchmarks should report not only stylized facts and forecasting improvements, but also exact rollout protocols and direct predictable-drift diagnostics.
+FTS-Diffusion has an appealing inductive bias for financial time series: variable-length motifs, pattern-conditioned diffusion, and learned motif evolution. Our reproduction attempt, however, did not yield a working generator from the released artifacts. In our hands the released sampling pipeline collapses to a near-linear ramp built from one repeated motif, the authors' own return-distribution test cleanly flags that output as far from real, and the one downstream setting that appears to improve forecasting does so only on a single strongly trending asset and fails to transfer to GOOG or ZC=F. The most economical reading of that pattern is a scale coincidence rather than useful augmentation. We are careful not to overstate this: we cannot yet separate the degeneracy from undertraining without the authors' checkpoints and full training budget, so we present empirical observations about the release, not a verdict on the method. What the evidence does support is a methodological point. Realistic-looking paths and a favorable downstream MAPE on a trending series are weak evidence on their own. Future synthetic-finance benchmarks should report exact rollout protocols, direct generator diagnostics such as the return-distribution and predictable-drift checks used here, and cross-asset transfer, rather than resting positive conclusions on a single asset.
 
 \bibliographystyle{plainnat}
 \bibliography{references}
