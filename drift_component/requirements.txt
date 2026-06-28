@@ -1,8 +1,0 @@
-numpy>=1.26,<3
-pandas>=2.1,<3
-pyyaml>=6.0,<7
-pytest>=8,<10
-
-# Optional:
-# scipy>=1.11,<2
-# torch>=2.2,<3
