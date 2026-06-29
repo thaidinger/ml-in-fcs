@@ -25,7 +25,7 @@
 \newcommand{\F}{\mathcal{F}}
 \newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
 
-\title{Replication and Predictable-Drift Diagnostics for FTS-Diffusion}
+\title{Replicating FTS-Diffusion: Degeneracy of the Released Generation Pipeline}
 
 \author{%
   Anonymous Author(s)\\
@@ -38,23 +38,17 @@
 \maketitle
 
 \begin{abstract}
-We revisit FTS-Diffusion (ICLR 2024), a financial time-series generator built from scale-invariant subsequence clustering (SISC), pattern-conditioned diffusion, and learned pattern evolution, and try to reproduce it from the released code. In our runs the released sampling pipeline is near-degenerate: synthetic S\&P 500 paths are one repeated motif tiled into an almost perfectly linear price ramp (linear-fit $R^2 \approx 1.0$), independent runs are nearly identical, and synthetic return volatility is about $20\times$ too small. We trace this to three choices in the released sampling code: a deterministic argmax rollout of the pattern chain, a one-unit decoder hidden state, and a commented-out magnitude normalization. We are explicit about confounds we cannot rule out: no checkpoints are shipped, and our training budget is reduced. Consistent with degeneracy, a continuous-rollout Train-on-Augmentation-Test-on-Real (TATR) setup appears to improve S\&P 500 forecasting by up to $85\%$, yet the same protocol never beats its baseline on GOOG or ZC=F. A coincidental scale match would produce exactly this non-transfer, whereas augmentation that carried real structure would help across assets. On the released artifacts the authors' own Kolmogorov--Smirnov and Anderson--Darling return tests cleanly separate synthetic from real in essentially every window, so a simple return check detects the degeneracy that the downstream MAPE misses. We also do not reproduce the Appendix B.3 SISC toy targets. As a predeclared extension we add a predictable-drift diagnostic that calibrates on real assets, tracks exploitable artificial alpha in a 500-seed experiment, and improves a 1000-seed augmentation-selection benchmark. We present these as observations from one reproduction attempt rather than a verdict on the method.
+We revisit FTS-Diffusion (ICLR 2024), a financial time-series generator built from scale-invariant subsequence clustering (SISC), pattern-conditioned diffusion, and learned pattern evolution, and try to reproduce it from the released code. In our runs the released sampling pipeline is near-degenerate: synthetic S\&P 500 paths are one repeated motif tiled into an almost perfectly linear price ramp (linear-fit $R^2 \approx 1.0$), independent runs are nearly identical, and synthetic return volatility is about $20\times$ too small. We trace this to three choices in the released sampling code: a deterministic argmax rollout of the pattern chain, a one-unit decoder hidden state, and a commented-out magnitude normalization. We are explicit about confounds we cannot rule out: no checkpoints are shipped, and our training budget is reduced. Consistent with degeneracy, a continuous-rollout Train-on-Augmentation-Test-on-Real (TATR) setup appears to improve S\&P 500 forecasting by up to $85\%$, yet the same protocol never beats its baseline on GOOG or ZC=F. Augmentation carrying real structure would help on all three assets; a gain limited to the one trending asset points to a scale coincidence. On the released artifacts the authors' own Kolmogorov--Smirnov and Anderson--Darling return tests cleanly separate synthetic from real in essentially every window, so a simple return check detects the degeneracy that the downstream MAPE misses. We also do not reproduce the Appendix B.3 SISC toy targets. We present these as observations from one reproduction attempt rather than a verdict on the method.
 \end{abstract}
 
 \section{Introduction}
 
 Deep generative models are attractive for finance because historical market data are scarce, noisy, nonstationary, and not experimentally reproducible. Financial returns also exhibit heavy tails, weak raw-return autocorrelation, volatility clustering, and recurring shapes at irregular time scales \citep{cont2001stylized}. Sequence generators try to preserve temporal structure with adversarial, optimal-transport, and score-based objectives \citep{yoon2019timegan,xu2020cotgan,tashiro2021csdi}; financial generators additionally need to respect stylized facts and economically meaningful dependence \citep{wiese2020quant}. FTS-Diffusion \citep{huang2024fts} addresses this by discovering variable-length motifs and generating new trajectories motif by motif.
 
-We position this work as a replication and diagnostic extension rather than a new generator. We retrace the released pipeline and try several generation protocols to see whether any rollout makes the method produce usable samples, check whether the SISC toy-data targets are reproducible, and test whether a simple predictable-drift statistic catches artificial alpha that marginal stylized facts miss. Its architecture is well motivated, but the released sampling pipeline, in our hands, produces degenerate artifacts: the synthetic series collapses to a near-linear price ramp built from one repeated motif (Section~\ref{sec:degeneracy}). Given that collapse, the apparent S\&P 500 gain looks less like useful augmentation than a coincidence that does not transfer across assets. We cannot fully separate this from a known confound: the original authors release no trained checkpoints, so we train every module ourselves and at a reduced budget relative to their defaults.
-
-We therefore extend the evaluation with a predictable-drift diagnostic. Under a fixed information vector
-\begin{equation}
-  \omega_t = (1, r_t, r_{t-1}, |r_t|, |r_{t-1}|)^\top,
-\end{equation}
-we measure whether the next return $r_{t+1}$ has a nonzero linear conditional mean under a bounded test class. We intend this not as a proof of market efficiency or absence of arbitrage, but as a finite, reproducible check for an important failure mode: a synthetic generator can match tails and volatility clustering while introducing a simple, exploitable conditional drift.
+We reproduce FTS-Diffusion and extend its evaluation; we do not propose a new generator. We retrace the released pipeline and try several generation protocols, asking whether any rollout produces non-degenerate samples. We also test whether the SISC toy-data targets reproduce. The architecture is sensible, but in our hands the released sampling pipeline degenerates: the synthetic series collapses to a near-linear price ramp built from one repeated motif (Section~\ref{sec:degeneracy}). Given that collapse, the apparent S\&P 500 gain probably reflects a scale coincidence that does not transfer across assets. We cannot fully separate this from a known confound: the original authors release no trained checkpoints, so we train every module ourselves and at a reduced budget relative to their defaults.
 
 \paragraph{Contributions.}
-We make five contributions. (i) A code-level diagnosis of the released sampling pipeline (Section~\ref{sec:degeneracy}): three specific choices that drive the synthetic series to a near-degenerate linear ramp, plus the underspecifications we had to resolve. (ii) A 30-seed S\&P 500 TATR study, with the cross-asset observation that the continuous-rollout gain does not transfer to GOOG or corn futures (ZC=F), which we read as a scale coincidence. (iii) A return-distribution check showing that the authors' own Kolmogorov--Smirnov and Anderson--Darling tests detect the degenerate output that the downstream MAPE still rewards. (iv) A documented Appendix B.3 SISC toy-data gap. (v) A fixed predictable-drift diagnostic, calibrated on real assets, applied to ordered FTS-Diffusion samples, validated by a 500-seed predictive-alpha experiment, and used in a 1000-seed augmentation-selection benchmark. Throughout, we separate claims about the released artifacts from what would need the authors' checkpoints to settle.
+We make four contributions. (i) A code-level diagnosis of the released sampling pipeline (Section~\ref{sec:degeneracy}): three specific choices that drive the synthetic series to a near-degenerate linear ramp, plus the underspecifications we had to resolve. (ii) A 30-seed S\&P 500 TATR study, with the cross-asset observation that the continuous-rollout gain does not transfer to GOOG or corn futures (ZC=F), which we read as a scale coincidence. (iii) A return-distribution check showing that the authors' own Kolmogorov--Smirnov and Anderson--Darling tests detect the degenerate output that the downstream MAPE still rewards. (iv) A documented Appendix B.3 SISC toy-data gap. Throughout, we separate claims about the released artifacts from what would need the authors' checkpoints to settle.
 
 \section{Background: FTS-Diffusion}
 
@@ -86,12 +80,12 @@ We compare three ways to produce the synthetic augmentation path, each sharing t
 These three protocols differ only in how the Markov chain transitions across blocks. Because the pattern-evolution module is the only component that carries long-horizon state across motifs, block connectivity is what they probe.
 
 \paragraph{Compute.}
-Our primary 30-seed S\&P 500 downstream batch used stored SISC artifacts and PGM/PEM checkpoints and recorded $10{,}478$ seconds on an Apple M4 laptop with 10 CPU cores and 16 GB memory. Lightweight drift diagnostics ran on the same machine: the ordered FTS audit recorded $629.82$ seconds with a four-thread cap, the 500-seed predictive-alpha script recorded $2.83$ seconds, and the 1000-seed selection benchmark recorded $32.69$ seconds. These times exclude earlier exploratory runs not used for the reported tables.
+Our primary 30-seed S\&P 500 downstream batch used stored SISC artifacts and PGM/PEM checkpoints and recorded $10{,}478$ seconds on an Apple M4 laptop with 10 CPU cores and 16 GB memory. This time excludes earlier exploratory runs not used for the reported tables.
 
 \section{Degeneracy of the released generation pipeline}
 \label{sec:degeneracy}
 
-We reproduce FTS-Diffusion end to end from the released code. Before downstream scores, we report what the generator actually produces, because it determines how the later numbers should be read. In our runs the released sampling path is near-degenerate: the synthetic price series is a single repeated motif tiled into an almost perfectly straight line. We give three jointly responsible choices, with file references into our working copy (\texttt{fts-diffusion-ref/}), then show the degeneracy on the saved trajectories and the return distribution. We treat these as observations about the released artifacts under our setup rather than proofs about the method; Section~\ref{sec:degeneracy:confounds} lists the confounds we cannot rule out.
+We reproduce FTS-Diffusion end to end from the released code. Before downstream scores, we report what the generator actually produces, because it determines how the later numbers should be read. In our runs the released sampling path is near-degenerate: the synthetic price series is a single repeated motif tiled into an almost perfectly straight line. We identify three code choices behind this, with file references into our working copy (\texttt{fts-diffusion-ref/}), then show the degeneracy on the saved trajectories and the return distribution. We treat these as observations about the released artifacts under our setup rather than proofs about the method; Section~\ref{sec:degeneracy:confounds} lists the confounds we cannot rule out.
 
 \subsection{Three choices in the released sampling code}
 \label{sec:degeneracy:choices}
@@ -233,7 +227,7 @@ In that batch, the continuous chunked rollout reproduces a strong paper-like red
 
 Synthetic price levels explain the effect. Continuous trajectories start near 1253 and end near 7085 (mean level 4138); independent blocks start from the same level but repeatedly reset, ending near 1249 (mean 1214). Continuous rollouts thus drift the near-linear ramp through the scale of the upward-trending S\&P 500 test period, so percentage error can fall simply because synthetic and real price levels overlap, not because the dynamics are informative. Independent blocks stay near the initial level, the overlap never happens, and error grows. Read with Section~\ref{sec:degeneracy}, this looks like a scale effect rather than useful augmentation. Cross-asset evidence below provides the cleaner test.
 
-Train-on-Mixture-Test-on-Real (TMTR) controls, which train the forecaster on a fixed real-plus-synthetic mixture rather than sweeping the amount of augmentation, make the replication conclusion more conservative. In our TMTR runs, the reference curve reaches a best mean improvement of $26.8\%$ but finishes $359.7\%$ worse; a continuous offset-30 control reaches a best improvement of $50.0\%$ and finishes $17.8\%$ better; a continuous offset-50 control finishes $752.0\%$ worse. So the evidence does not say ``synthetic data always helps.'' A narrower reading fits: a particular continuous TATR price-level rollout can create large apparent gains, while other augmentation and evaluation choices do not support the same conclusion.
+Train-on-Mixture-Test-on-Real (TMTR) controls, which train the forecaster on a fixed real-plus-synthetic mixture rather than sweeping the amount of augmentation, make the replication conclusion more conservative. In our TMTR runs, the reference curve reaches a best mean improvement of $26.8\%$ but finishes $359.7\%$ worse; a continuous offset-30 control reaches a best improvement of $50.0\%$ and finishes $17.8\%$ better; a continuous offset-50 control finishes $752.0\%$ worse. So the evidence does not say that synthetic data always helps. A particular continuous TATR price-level rollout can create large apparent gains, while other augmentation and evaluation choices do not.
 
 We make no claim of misconduct; the available generation details do not pin down the downstream result uniquely. Once the generator is seen to be degenerate, though, the simplest reading of the S\&P 500 gain is a scale coincidence rather than augmentation that works under the right protocol. Either way, a reproducible benchmark should treat the Markov-chain rollout, initialization, block slicing, scaler fitting, and warm-up windows as first-class parameters, and should not rest a positive conclusion on downstream MAPE for a single trending asset.
 
@@ -259,157 +253,15 @@ We also stress-tested SISC on the Appendix B.3 simulated-data setting. Two metri
 
 Increasing SISC iterations from 10 to 20 and changing $l_{\max}$ from 20 to 21 did not close the gap. Our best strict boundary Jaccard at tolerance 2 was $0.3608$, and the best reference-code-style interval IoU (intersection over union of recovered and true segment intervals) was $0.6418$. Our best centroid metric remained about $3.2\times$ the reported target. We could not reproduce the exact toy benchmark, though this says nothing about the general idea of SISC: the released tree does not expose the exact one-pattern construction, synthetic generator, standard pattern arrays, seed state, or metric implementation used to produce Appendix B.3. More broadly, helper defaults matter: warm-up windows, augmentation scales, plotting conventions, and interval-overlap metrics can all change the apparent result if they go unaudited.
 
-\section{Predictable-drift extension}
-
-\subsection{Diagnostic}
-
-Stylized facts are necessary but not sufficient for finance. A generator can reproduce heavy tails and volatility clustering while encoding a simple conditional mean, such as $r_{t+1} = \rho r_t + \epsilon_{t+1}$. Marginal tests may not detect this, but a trading signal using $r_t$ can. We therefore treat the drift check as a fixed, predeclared diagnostic rather than a learned discriminator: the chronological split rule, feature map, train-only standardization, null construction, and companion stylized-fact summaries are fixed before evaluating synthetic outcomes.
-
-Motivated by the martingale-difference intuition behind weak-form market efficiency \citep{fama1970efficient}, we fix a small information set
-\begin{equation}
-  \omega_t =
-  \left(1,\ r_t,\ r_{t-1},\ |r_t|,\ |r_{t-1}|\right)^\top
-\end{equation}
-and a bounded linear class
-\begin{equation}
-  g_b(\F_t) = b^\top \omega_t, \qquad \norm{b}_2 \leq 1.
-\end{equation}
-The population predictable-drift violation is
-\begin{equation}
-  \delta =
-  \sup_{\norm{b}_2 \leq 1}
-  \left| \E \left[r_{t+1} b^\top \omega_t \right]\right|.
-  \label{eq:delta-pop}
-\end{equation}
-Let $m = \E[r_{t+1}\omega_t]$. By Cauchy-Schwarz, Equation~\ref{eq:delta-pop} has the closed form
-\begin{equation}
-  \delta = \norm{m}_2.
-\end{equation}
-The empirical estimator is therefore
-\begin{equation}
-  \hat{\delta} =
-  \left\|
-    \frac{1}{T-2}\sum_{t=2}^{T-1} r_{t+1}\omega_t
-  \right\|_2.
-  \label{eq:delta-hat}
-\end{equation}
-
-This statistic decomposes into interpretable components: unconditional drift, first-lag return predictability, second-lag return predictability, and two volatility-conditioned mean terms. In our implementation, returns are standardized using training-split mean and standard deviation only; the constant feature remains equal to one. We compare real data, synthetic data, and a block-shuffled null that preserves the return multiset and some local dependence while disrupting longer chronological alignment.
-
-\subsection{Real-asset calibration}
-
-Before using $\hat{\delta}$ as a rejection statistic, we calibrate it on real held-out assets. For S\&P 500, GOOG, and ZC=F, we start from raw close-price CSVs, use the first $80\%$ of simple returns for standardization, and evaluate the last $20\%$. Our null distribution uses 500 replications of 21-day block shuffling on the held-out returns. Table~\ref{tab:real-drift-calibration} shows that all three real held-out paths lie inside their asset-specific 5--95\% null bands, while retaining heavy tails and volatility clustering. So the diagnostic does not simply reject real financial data for being non-Gaussian.
-
-\begin{table}[h]
-  \caption{Real-asset predictable-drift calibration. Null band is the 5--95\% range from 500 block-shuffled held-out paths. ACF$(|r|)$ is the lag-1 autocorrelation of absolute returns (a volatility-clustering measure) and Ex.\ kurt.\ the excess kurtosis of returns.}
-  \label{tab:real-drift-calibration}
-  \centering
-  \begin{tabular}{lrrrrr}
-    \toprule
-    Asset & Test obs. & Real $\hat{\delta}$ & Null 5--95\% & ACF$(|r|)$ & Ex. kurt. \\
-    \midrule
-    S\&P 500 & 2018 & 0.0297 & [0.0222, 0.0303] & 0.2165 & 3.2110 \\
-    GOOG & 755 & 0.0575 & [0.0403, 0.0629] & 0.0935 & 6.1142 \\
-    ZC=F & 953 & 0.0173 & [0.0150, 0.0259] & 0.1250 & 2.0247 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-\subsection{Controlled predictive-alpha test}
-
-We next test whether larger $\hat{\delta}$ corresponds to exploitable predictability. In each of 500 seeds, we simulate a zero-mean heavy-tailed GARCH-like path, keep the evaluation-period magnitude path $|r_t|$ fixed, and replace only the signs. An iid-sign control has no intentional sign predictability, while Markov-sign samples have sign persistence $p$. We fit a ridge linear predictor on the first half of each evaluation path using the same feature map $\omega_t$, then evaluate one-step prediction and a sign strategy on the second half.
-
-Table~\ref{tab:drift-alpha} and Figure~\ref{fig:drift-extension} show the result. Both the iid-sign and real controls have near-zero out-of-sample correlation, near-50\% directional accuracy, and near-zero strategy Sharpe. At $p=0.85$, the hidden-drift sample has mean $\hat{\delta}=0.5126$, out-of-sample correlation $0.4112$, directional accuracy $79.76\%$, and mean annualized Sharpe $7.72$ with seed standard deviation $1.18$. Across all controlled samples, pooled $\hat{\delta}$ and out-of-sample Sharpe have correlation $0.6921$. So $\hat{\delta}$ tracks artificial alpha rather than serving as a passive reporting statistic.
-
-\begin{table}[t]
-  \caption{Controlled predictive-alpha test over 500 seeds. Magnitude paths are fixed within seed; only sign dependence changes.}
-  \label{tab:drift-alpha}
-  \centering
-  \begin{tabular}{lrrrrl}
-    \toprule
-    Sample & $p$ & $\hat{\delta}$ & OOS corr. & Dir. acc. & Sharpe (sd) \\
-    \midrule
-    Real evaluation path & -- & 0.0976 & 0.0004 & 0.5025 & 0.07 (0.77) \\
-    IID signs & -- & 0.0941 & 0.0036 & 0.5020 & 0.09 (0.74) \\
-    Markov signs & 0.65 & 0.2088 & 0.1482 & 0.5968 & 2.33 (0.96) \\
-    Markov signs & 0.75 & 0.3435 & 0.2786 & 0.6952 & 4.80 (1.05) \\
-    Markov signs & 0.85 & 0.5126 & 0.4112 & 0.7976 & 7.72 (1.18) \\
-    Markov signs & 0.90 & 0.6164 & 0.4811 & 0.8483 & 9.43 (1.33) \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=0.96\linewidth]{06_drift_extension_evidence.pdf}
-  \caption{Drift versus no-drift evidence from the larger controlled experiments. The diagnostic tracks held-out artificial alpha, separates hidden-drift sign processes from real and iid controls, and improves augmentation selection by avoiding null violations and high-persistence candidates.}
-  \label{fig:drift-extension}
-\end{figure}
-
-\subsection{Ordered FTS audit and incorporated selection}
-
-Applying this to FTS-Diffusion is direct: report Equation~\ref{eq:delta-hat} on ordered samples from each rollout protocol, and do not select a protocol only because it improves TATR if its $\hat{\delta}$ lies outside the real/null band. We regenerated six S\&P 500 synthetic paths per protocol from stored FTS-Diffusion checkpoints, using 100 ordered 252-day blocks per seed and excluding artificial transitions between independent blocks. Table~\ref{tab:fts-drift-audit} shows that continuous rollouts stay inside the S\&P 500 null band in all six seeds, while independent fixed blocks violate it in all six. Under this statistic the audit does not reject the continuous rollout that produces paper-like TATR gains; it flags the independent reset protocol as both downstream-harmful and predictably drifted.
-
-\begin{table}[t]
-  \caption{Ordered S\&P 500 FTS-Diffusion drift audit over six seeds and 25,200 generated prices per seed. The cutoff is the S\&P 500 held-out block-shuffle null 95th percentile, $q_{.95}=0.0303$.}
-  \label{tab:fts-drift-audit}
-  \centering
-  \begin{tabular}{lrrrr}
-    \toprule
-    Protocol & $\hat{\delta}$ & $\hat{\delta}/q_{.95}$ & Violations & Price std. \\
-    \midrule
-    Continuous rollout & 0.0263 & 0.87 & 0/6 & 1701.5 \\
-    Independent fixed blocks & 0.0370 & 1.22 & 6/6 & 24.5 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-We next test whether the same principle helps choose augmentations in a controlled benchmark. For each of 1000 seeds, all candidate augmentations shared the same magnitude path but had different sign dynamics. A marginal stylized selector minimized a distance over volatility, tail, quantile, and absolute-return autocorrelation summaries; the drift-incorporated selector minimized
-\begin{equation}
-  d_{\mathrm{styl}} +
-  0.25\left[\hat{\delta}/q^{\mathrm{real}}_{.95}-1\right]_+^2,
-  \label{eq:selection-penalty}
-\end{equation}
-where $q^{\mathrm{real}}_{.95}$ is the real block-shuffle null cutoff. Each selected augmentation trained the same one-step ridge predictor on a 252-day real initialization plus synthetic returns, with performance measured on a final held-out real path that the drift-penalized selector does not see.
-
-\begin{table}[t]
-  \caption{Drift-incorporated augmentation selection over 1000 seeds. Lower normalized mean squared error (NMSE) is better. High-$p$ is the fraction of selected Markov-sign candidates with persistence $p \geq 0.75$. Oracle uses held-out test MSE and is only a reference upper bound.}
-  \label{tab:drift-selection}
-  \centering
-  \begin{tabular}{lrrrrr}
-    \toprule
-    Selector & Null viol. & High-$p$ & Styl. score & Test NMSE & Excess \\
-    \midrule
-    Oracle test-MSE & 41.5\% & 0.5\% & 0.2135 & 0.9979 & $-0.0319$ \\
-    Drift-penalized & 34.6\% & 0.2\% & 0.0520 & 1.0087 & $-0.0211$ \\
-    Stylized-only & 76.0\% & 39.3\% & 0.0344 & 1.0452 & $+0.0154$ \\
-    Random & 84.8\% & 50.2\% & 0.3106 & 1.0579 & $+0.0281$ \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-Table~\ref{tab:drift-selection} shows that incorporating the diagnostic changes the selected augmentation, not just the reporting. Relative to stylized-only selection, the drift-penalized selector reduces high-persistence choices from $39.3\%$ to $0.2\%$, cuts real-null violations from $76.0\%$ to $34.6\%$, and lowers held-out normalized MSE by $0.0365$ on average, with a $60.8\%$ paired win rate. If the statistic is incorporated during training rather than selection, use it as a validation-selected penalty
-\begin{equation}
-  \mathcal{L}_{\mathrm{total}}
-  =
-  \mathcal{L}_{\mathrm{FTS}}
-  +
-  \lambda \hat{\delta}_{\mathrm{synthetic}}^2.
-  \label{eq:drift-penalty}
-\end{equation}
-Computing the penalty requires ordered return sequences. Applying it across randomly shuffled mini-batches would destroy the time ordering and should only be logged as a proxy, not as the final diagnostic.
-
 \section{Limitations and broader impact}
 
-Our replication is constrained by the information and compute available for this study. Most importantly, the degeneracy analysis of Section~\ref{sec:degeneracy} concerns the released artifacts as configured and as trained in our hands: no checkpoints are shipped, and our training budget is reduced relative to the released defaults. We have not run the full-budget, multi-seed retrain that would separate undertraining from an architectural cause, so we deliberately phrase those findings as observations about the release rather than conclusions about the method. Some runs use reference checkpoints rather than a full fresh retraining of all modules, and the ordered FTS-Diffusion drift audit is limited to the S\&P 500 checkpoints and the fixed diagnostic in Equation~\ref{eq:delta-hat}. Train-time validation selection of $\lambda$ remains to be run before claiming an optimized drift-regularized generator. GOOG and ZC=F have shorter histories than S\&P 500, so the downstream split used for S\&P 500 is not directly portable without changing the question being asked; we mitigate this by comparing within split, relative to each protocol's own baseline.
-
-Our predictable-drift diagnostic covers a small hypothesis class by design. It tests only the five-dimensional linear feature map $\omega_t$, so it can miss nonlinear or longer-memory predictability and does not constitute a proof of no-arbitrage. Its compensating strength is reproducibility, since the statistic is simple, closed-form, and hard to tune after seeing the result.
+Our replication is constrained by the information and compute available for this study. Most importantly, the degeneracy analysis of Section~\ref{sec:degeneracy} concerns the released artifacts as configured and as trained in our hands: no checkpoints are shipped, and our training budget is reduced relative to the released defaults. We have not run the full-budget, multi-seed retrain that would separate undertraining from an architectural cause, so we deliberately phrase those findings as observations about the release rather than conclusions about the method. Some runs use reference checkpoints rather than a full fresh retraining of all modules. GOOG and ZC=F have shorter histories than S\&P 500, so the downstream split used for S\&P 500 is not directly portable without changing the question being asked; we mitigate this by comparing within split, relative to each protocol's own baseline.
 
 Synthetic financial data can be beneficial for stress testing, augmentation, and reproducibility, but it can also create misleading evidence if artificial predictability is mistaken for real market structure. Any release of synthetic paths should clearly label them as generated data, document the training period and generation protocol, and avoid implying that downstream forecasting gains translate into tradable performance.
 
 \section{Conclusion}
 
-FTS-Diffusion has an appealing inductive bias for financial time series: variable-length motifs, pattern-conditioned diffusion, and learned motif evolution. Our reproduction attempt, however, did not yield a working generator from the released artifacts. In our hands the released sampling pipeline collapses to a near-linear ramp built from one repeated motif, the authors' own return-distribution test cleanly flags that output as far from real, and the one downstream setting that appears to improve forecasting does so only on a single strongly trending asset and fails to transfer to GOOG or ZC=F. We read that pattern as a scale coincidence rather than useful augmentation. We do not overstate it: without the authors' checkpoints and full training budget we cannot yet separate the degeneracy from undertraining, so we report empirical observations about the release, not a verdict on the method. One methodological point holds regardless: realistic-looking paths and a favorable downstream MAPE on a trending series are weak evidence on their own. Future synthetic-finance benchmarks should report exact rollout protocols, direct generator diagnostics such as the return-distribution and predictable-drift checks used here, and cross-asset transfer, rather than resting positive conclusions on a single asset.
+FTS-Diffusion has a sensible inductive bias for financial time series: variable-length motifs, pattern-conditioned diffusion, and learned motif evolution. Our reproduction attempt, however, did not yield a working generator from the released artifacts. In our hands the released sampling pipeline collapses to a near-linear ramp built from one repeated motif, the authors' own return-distribution test cleanly flags that output as far from real, and the one downstream setting that appears to improve forecasting does so only on a single strongly trending asset and fails to transfer to GOOG or ZC=F. We read that pattern as a scale coincidence rather than useful augmentation. We do not overstate it: without the authors' checkpoints and full training budget we cannot yet separate the degeneracy from undertraining, so we report empirical observations about the release, not a verdict on the method. One methodological point holds regardless: realistic-looking paths and a favorable downstream MAPE on a trending series are weak evidence on their own. Future synthetic-finance benchmarks should report exact rollout protocols, direct generator diagnostics such as the return-distribution check used here, and cross-asset transfer, rather than resting positive conclusions on a single asset.
 
 \bibliographystyle{plainnat}
 \bibliography{references}
