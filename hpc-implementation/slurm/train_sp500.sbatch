@@ -17,11 +17,6 @@ REPO_ROOT="${REPO_ROOT:-${DEFAULT_REPO1}}"
 CONTAINER_ENV="${CONTAINER_ENV:-/capstor/store/cscs/ethz/lsaie-ss26/environment/ngc.toml}"
 VENV_PATH="${VENV_PATH:-${REPO_ROOT}/.venv}"
 
-if [[ ! -f "${VENV_PATH}/bin/activate" ]]; then
-  echo "[train-sbatch] ERROR: virtualenv not found at ${VENV_PATH}; create it per README"
-  exit 1
-fi
-
 mkdir -p "${REPO_ROOT}/hpc-implementation/logs"
 cd "${REPO_ROOT}"
 
@@ -38,20 +33,48 @@ srun --ntasks=1 --nodes=1 --cpus-per-task="${SLURM_CPUS_PER_TASK:-8}" --environm
   bash -lc '
 set -euo pipefail
 cd "${REPO_ROOT}"
-PYTHON_BIN="${VENV_PATH}/bin/python"
-if [[ -x "${VENV_PATH}/bin/activate" && -x "${VENV_PATH}/bin/python" ]]; then
-  source "${VENV_PATH}/bin/activate"
-else
-  if command -v python3 >/dev/null 2>&1; then
-    PYTHON_BIN="$(command -v python3)"
-  elif command -v python >/dev/null 2>&1; then
-    PYTHON_BIN="$(command -v python)"
-  else
-    echo "[train-sbatch] ERROR: no usable Python interpreter found inside container"
-    exit 1
+
+# Auto-setup venv if missing, broken, or missing required packages
+if [[ ! -x "${VENV_PATH}/bin/python" ]]; then
+  echo "[train-setup] venv at ${VENV_PATH} missing or broken; creating it"
+  if [[ -d "${VENV_PATH}" ]]; then
+    echo "[train-setup] removing stale venv"
+    rm -rf "${VENV_PATH}"
   fi
-  echo "[train-sbatch] WARNING: ${VENV_PATH}/bin/python is unavailable; falling back to ${PYTHON_BIN}"
+  python -m venv --system-site-packages "${VENV_PATH}"
 fi
+
+VENV_PYTHON="${VENV_PATH}/bin/python"
+if [[ ! -x "${VENV_PYTHON}" ]]; then
+  echo "[train-sbatch] ERROR: failed to create a usable python at ${VENV_PYTHON}"
+  exit 1
+fi
+
+if ! "${VENV_PYTHON}" - <<'PY'
+import importlib.util
+import sys
+missing = [name for name in ("yfinance",) if importlib.util.find_spec(name) is None]
+sys.exit(0 if not missing else 1)
+PY
+then
+  echo "[train-setup] yfinance missing from venv; installing hpc-implementation requirements"
+  "${VENV_PYTHON}" -m pip install --upgrade pip
+  "${VENV_PYTHON}" -m pip install -r hpc-implementation/requirements_clariden.txt
+fi
+
+if ! "${VENV_PYTHON}" - <<'PY'
+import importlib.util
+import sys
+missing = [name for name in ("yfinance",) if importlib.util.find_spec(name) is None]
+sys.exit(0 if not missing else 1)
+PY
+then
+  echo "[train-sbatch] ERROR: yfinance is still unavailable in ${VENV_PYTHON} after installation"
+  exit 1
+fi
+
+source "${VENV_PATH}/bin/activate"
+PYTHON_BIN="${VENV_PYTHON}"
 echo "[train-sbatch] python=${PYTHON_BIN}"
 "${PYTHON_BIN}" -V
 "${PYTHON_BIN}" hpc-implementation/scripts/train_sp500.py --repo-root "${REPO_ROOT}" --store-model "$@"

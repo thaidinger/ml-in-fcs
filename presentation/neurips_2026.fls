@@ -1,0 +1,10 @@
+PWD /Users/tomhaidinger/Documents/Gitlab_Projects/fts-diffusion/presentation
+INPUT /usr/local/texlive/2020/texmf.cnf
+INPUT /usr/local/texlive/2020/texmf-dist/web2c/texmf.cnf
+INPUT /usr/local/texlive/2020/texmf-var/web2c/pdftex/pdflatex.fmt
+INPUT /Users/tomhaidinger/Documents/Gitlab_Projects/fts-diffusion/presentation/neurips_2026.tex
+OUTPUT /Users/tomhaidinger/Documents/Gitlab_Projects/fts-diffusion/presentation/neurips_2026.log
+INPUT /usr/local/texlive/2020/texmf-dist/tex/latex/base/article.cls
+INPUT /usr/local/texlive/2020/texmf-dist/tex/latex/base/article.cls
+INPUT /usr/local/texlive/2020/texmf-dist/tex/latex/base/size10.clo
+INPUT /usr/local/texlive/2020/texmf-dist/tex/latex/base/size10.clo

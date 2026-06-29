@@ -1,0 +1,30 @@
+{
+  "asset": "sp500",
+  "purpose": "TMTR smoke plot using folder 17 argmax/sampled rollout price paths",
+  "settings": {
+    "input": "reports/generated_outputs/17_sampled_rollout_tatr_smoke/sampled_rollout_prices.csv",
+    "output": "reports/generated_outputs/17_sampled_rollout_tatr_smoke",
+    "proportions": [
+      0,
+      10,
+      20,
+      30,
+      40,
+      50,
+      60,
+      70,
+      80,
+      90,
+      100
+    ],
+    "epochs": 100,
+    "mix_length": 1260,
+    "window_size": 64,
+    "ahead": 1,
+    "hidden_dim": 32,
+    "loss": "mae",
+    "seed": 42,
+    "name": "tmtr_dense_100epoch"
+  },
+  "elapsed_seconds": 440.506
+}

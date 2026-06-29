@@ -1,0 +1,3 @@
+asset,n_segments,n_train_segments,n_test_segments
+goog,258,206,52
+sp500,703,562,141

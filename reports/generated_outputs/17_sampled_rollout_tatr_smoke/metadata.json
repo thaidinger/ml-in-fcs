@@ -1,0 +1,23 @@
+{
+  "asset": "sp500",
+  "purpose": "old-vs-fixed smoke test for PEM sampled rollout in TATR",
+  "settings": {
+    "eval_blocks": [
+      0,
+      10,
+      30,
+      50
+    ],
+    "epochs": 30,
+    "aug_length": 252,
+    "window_size": 64,
+    "ahead": 1,
+    "hidden_dim": 32,
+    "loss": "mae",
+    "seed": 42,
+    "protocols": "independent_argmax,continuous_argmax_chunked,independent_sampled,continuous_sampled_chunked",
+    "output": "reports/generated_outputs/17_sampled_rollout_tatr_smoke"
+  },
+  "elapsed_seconds": 247.739,
+  "interpretation": "This is a small downstream smoke test. It checks whether stochastic PEM rollout fixes motif collapse and how that changes TATR relative to deterministic argmax protocols."
+}

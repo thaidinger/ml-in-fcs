@@ -1,5 +1,6 @@
 import torch
 import os
+import glob
 torch.set_default_dtype(torch.float)
 
 from models.scaling_autoencoder import *
@@ -76,13 +77,31 @@ def build_pgm(device):
 def load_pattern_generation_module(state_dict=True):
   """ Load the trained pattern generation module with default (or input) hyper-parameters """
   filename = get_pgm_name(state_dict)
-  filepath = model_path + filename
+  filepath = os.path.join(model_path, filename)
+  # If exact file not present, try .latest pointer or pick newest timestamped file
   if not os.path.exists(filepath):
-    legacy_filepath = filepath + '.pth'
-    if os.path.exists(legacy_filepath):
-      filepath = legacy_filepath
+    base_noext = filename.rsplit('.', 1)[0]
+    latest_pointer = os.path.join(model_path, base_noext + '.latest')
+    if os.path.exists(latest_pointer):
+      try:
+        with open(latest_pointer, 'r') as f:
+          ptr = f.read().strip()
+        if ptr:
+          candidate = os.path.join(model_path, ptr)
+          if os.path.exists(candidate):
+            filepath = candidate
+      except Exception:
+        pass
+    if not os.path.exists(filepath):
+      ext = '.pth' if state_dict else '.pt'
+      pattern = os.path.join(model_path, base_noext + '_*' + ext)
+      matches = glob.glob(pattern)
+      if matches:
+        filepath = max(matches, key=os.path.getmtime)
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
   pgm = build_pgm(device)
+  if not os.path.exists(filepath):
+    raise FileNotFoundError(f"Pattern generation model not found. Expected {os.path.join(model_path, filename)}; searched .latest and timestamped variants.")
   pgm.load_state_dict(torch.load(filepath, map_location=device))
   pgm.eval()
   return pgm
@@ -120,13 +139,31 @@ def build_pem(device):
 def load_pattern_evolution_module(state_dict=True):
   """ Load the trained pattern evolution module with default (or input) hyper-parameters """
   filename = get_pem_name(state_dict)
-  filepath = model_path + filename
+  filepath = os.path.join(model_path, filename)
+  # If exact file not present, try .latest pointer or pick newest timestamped file
   if not os.path.exists(filepath):
-    legacy_filepath = filepath + '.pth'
-    if os.path.exists(legacy_filepath):
-      filepath = legacy_filepath
+    base_noext = filename.rsplit('.', 1)[0]
+    latest_pointer = os.path.join(model_path, base_noext + '.latest')
+    if os.path.exists(latest_pointer):
+      try:
+        with open(latest_pointer, 'r') as f:
+          ptr = f.read().strip()
+        if ptr:
+          candidate = os.path.join(model_path, ptr)
+          if os.path.exists(candidate):
+            filepath = candidate
+      except Exception:
+        pass
+    if not os.path.exists(filepath):
+      ext = '.pth' if state_dict else '.pt'
+      pattern = os.path.join(model_path, base_noext + '_*' + ext)
+      matches = glob.glob(pattern)
+      if matches:
+        filepath = max(matches, key=os.path.getmtime)
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
   pem = build_pem(device).to(device)
+  if not os.path.exists(filepath):
+    raise FileNotFoundError(f"Pattern evolution model not found. Expected {os.path.join(model_path, filename)}; searched .latest and timestamped variants.")
   pem.load_state_dict(torch.load(filepath, map_location=device))
   pem.eval()
   return pem

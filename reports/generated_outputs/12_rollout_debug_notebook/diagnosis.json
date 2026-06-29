@@ -1,0 +1,10 @@
+{
+  "verdict": "prediction_confirmed",
+  "interpretation": "The author-style fixed-block protocol replays identical pattern-length paths, and deterministic argmax rollouts collapse to a small motif subset. Sampling PEM pattern/length distributions, or using an empirical Markov transition baseline, restores broad motif diversity.",
+  "outputs": {
+    "summary": "rollout_state_summary.csv",
+    "states": "rollout_states_long.csv",
+    "prices": "rollout_prices_long.csv",
+    "checks": "prediction_checks.csv"
+  }
+}

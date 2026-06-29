@@ -1,0 +1,3 @@
+asset,fixed_blocks_replay_exactly,sampled_unique_patterns_minus_argmax,sampled_entropy_minus_argmax,empirical_unique_patterns_minus_argmax
+goog,True,7,2.201928102127564,7
+sp500,True,11,3.046330911038771,12
