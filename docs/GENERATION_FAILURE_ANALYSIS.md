@@ -29,8 +29,8 @@ produces a small spurious `+Δ` per segment, the collapsed PEM repeats it withou
 
 ### Mechanism
 `state_evolution_ftsdiffusion`
-([`fts-diffusion-ref/models/sampling.py:22-38`](fts-diffusion-ref/models/sampling.py#L22-L38),
-identical to authors' [`code_from_authors/codes/models/sampling.py:22-38`](code_from_authors/codes/models/sampling.py#L22-L38))
+([`fts-diffusion-ref/models/sampling.py:22-38`](../fts-diffusion-ref/models/sampling.py#L22-L38),
+identical to authors' [`code_from_authors/codes/models/sampling.py:22-38`](../code_from_authors/codes/models/sampling.py#L22-L38))
 predicts the next state with **`torch.argmax`** for the pattern and the length, and the
 raw regression output for the magnitude — **no sampling**:
 
@@ -85,8 +85,8 @@ slightly-rising segment — pattern shape lost, magnitude lost.
 ### The lost magnitude
 The segment range (≈2.3) is far below `β`=31.4 because the authors **commented out** the
 range normalization in `segment_generation_ftsdiffusion`
-([`fts-diffusion-ref/models/sampling.py:53-55`](fts-diffusion-ref/models/sampling.py#L53-L55),
-identical to authors' [`code_from_authors/codes/models/sampling.py:53-55`](code_from_authors/codes/models/sampling.py#L53-L55)):
+([`fts-diffusion-ref/models/sampling.py:53-55`](../fts-diffusion-ref/models/sampling.py#L53-L55),
+identical to authors' [`code_from_authors/codes/models/sampling.py:53-55`](../code_from_authors/codes/models/sampling.py#L53-L55)):
 
 ```python
 # m_new = (max(new_segment) - min(new_segment))
@@ -115,11 +115,11 @@ inspecting the diffusion latent `z_` and the decoder output `x_` separately
 
 **Root cause:** the Scaling-AE decoder is an LSTM with **`sae_hidden_dim = 1`** —
 the LSTM is defined at
-[`fts-diffusion-ref/models/scaling_autoencoder.py:58`](fts-diffusion-ref/models/scaling_autoencoder.py#L58)
+[`fts-diffusion-ref/models/scaling_autoencoder.py:58`](../fts-diffusion-ref/models/scaling_autoencoder.py#L58)
 (`nn.LSTM(hidden_dim, hidden_dim, n_layers=2, batch_first=True)`), its `hidden_dim` is
 fed from `pgm_params['sae_hidden_dim']` set to `1` at
-[`fts-diffusion-ref/models/model_params.py:34`](fts-diffusion-ref/models/model_params.py#L34)
-(identical to authors' [`code_from_authors/codes/models/model_params.py:33`](code_from_authors/codes/models/model_params.py#L33)).
+[`fts-diffusion-ref/models/model_params.py:34`](../fts-diffusion-ref/models/model_params.py#L34)
+(identical to authors' [`code_from_authors/codes/models/model_params.py:33`](../code_from_authors/codes/models/model_params.py#L33)).
 A single hidden unit is essentially no capacity. It collapses to a fixed degenerate
 output (a small monotone saturating ramp, net ≈ +0.075) that ignores both the
 conditioning pattern *and* the diffusion latent.
@@ -156,11 +156,11 @@ Every degeneracy-causing line above is present in the authors' released code
 
 | Claim | Authors' file:line | Our file:line |
 |---|---|---|
-| PEM `argmax` for pattern + length, raw regression for magnitude | [`code_from_authors/.../sampling.py:30,33,34`](code_from_authors/codes/models/sampling.py#L30-L34) | [`fts-diffusion-ref/models/sampling.py:30,33,34`](fts-diffusion-ref/models/sampling.py#L30-L34) |
-| Magnitude range-normalization commented out | [`code_from_authors/.../sampling.py:53-55`](code_from_authors/codes/models/sampling.py#L53-L55) | [`fts-diffusion-ref/models/sampling.py:53-55`](fts-diffusion-ref/models/sampling.py#L53-L55) |
-| `sae_hidden_dim = 1` in `pgm_params` | [`code_from_authors/.../model_params.py:33`](code_from_authors/codes/models/model_params.py#L33) | [`fts-diffusion-ref/models/model_params.py:34`](fts-diffusion-ref/models/model_params.py#L34) |
-| Scaling-AE decoder is `nn.LSTM(hidden_dim, hidden_dim, 2)` | [`code_from_authors/.../scaling_autoencoder.py:58`](code_from_authors/codes/models/scaling_autoencoder.py#L58) | [`fts-diffusion-ref/models/scaling_autoencoder.py:58`](fts-diffusion-ref/models/scaling_autoencoder.py#L58) |
-| Segment anchoring `segment - segment[0] + timeseries[-1]` | [`code_from_authors/.../sampling.py:92,140`](code_from_authors/codes/models/sampling.py#L92) | [`fts-diffusion-ref/models/sampling.py:92,140`](fts-diffusion-ref/models/sampling.py#L92) |
+| PEM `argmax` for pattern + length, raw regression for magnitude | [`code_from_authors/.../sampling.py:30,33,34`](../code_from_authors/codes/models/sampling.py#L30-L34) | [`fts-diffusion-ref/models/sampling.py:30,33,34`](../fts-diffusion-ref/models/sampling.py#L30-L34) |
+| Magnitude range-normalization commented out | [`code_from_authors/.../sampling.py:53-55`](../code_from_authors/codes/models/sampling.py#L53-L55) | [`fts-diffusion-ref/models/sampling.py:53-55`](../fts-diffusion-ref/models/sampling.py#L53-L55) |
+| `sae_hidden_dim = 1` in `pgm_params` | [`code_from_authors/.../model_params.py:33`](../code_from_authors/codes/models/model_params.py#L33) | [`fts-diffusion-ref/models/model_params.py:34`](../fts-diffusion-ref/models/model_params.py#L34) |
+| Scaling-AE decoder is `nn.LSTM(hidden_dim, hidden_dim, 2)` | [`code_from_authors/.../scaling_autoencoder.py:58`](../code_from_authors/codes/models/scaling_autoencoder.py#L58) | [`fts-diffusion-ref/models/scaling_autoencoder.py:58`](../fts-diffusion-ref/models/scaling_autoencoder.py#L58) |
+| Segment anchoring `segment - segment[0] + timeseries[-1]` | [`code_from_authors/.../sampling.py:92,140`](../code_from_authors/codes/models/sampling.py#L92) | [`fts-diffusion-ref/models/sampling.py:92,140`](../fts-diffusion-ref/models/sampling.py#L92) |
 
 `sampling.py` is **byte-identical** between the two repos except line 7
 (`from tqdm.notebook import tqdm` → `from tqdm import tqdm`, an environment fix). All
@@ -175,10 +175,10 @@ method is broken":
    exist; the authors' release does not include pretrained PGM/PEM weights. Every
    reproduction depends on retraining from their training scripts. We cannot compare
    our generations against the authors' "official" outputs.
-2. **We undertrained.** Our [`fts-diffusion-ref/models/model_params.py`](fts-diffusion-ref/models/model_params.py)
+2. **We undertrained.** Our [`fts-diffusion-ref/models/model_params.py`](../fts-diffusion-ref/models/model_params.py)
    uses PGM `n_epochs=30` (line 48) and PEM `n_epochs=60` (line 65) vs. the authors'
    defaults of `n_epochs=400` and `n_epochs=1000` in
-   [`code_from_authors/codes/models/model_params.py:47,64`](code_from_authors/codes/models/model_params.py#L47).
+   [`code_from_authors/codes/models/model_params.py:47,64`](../code_from_authors/codes/models/model_params.py#L47).
    The 13×/16× gap is a compute-driven reduction; it is also the first thing a
    peer-reviewer will challenge.
 
@@ -209,8 +209,8 @@ artifacts of our reduced epoch budget (PGM 30/400, PEM 60/1000), not architectur
 
 ### H2. Seed sensitivity
 **Claim under stress:** SISC k-means and PGM/PEM training both run under `SEED=42`
-(hard-coded in [`fts-diffusion-ref/models/model_params.py:6`](fts-diffusion-ref/models/model_params.py#L6) and
-[`pattern_recognition_module.py`](fts-diffusion-ref/models/pattern_recognition_module.py)).
+(hard-coded in [`fts-diffusion-ref/models/model_params.py:6`](../fts-diffusion-ref/models/model_params.py#L6) and
+[`pattern_recognition_module.py`](../fts-diffusion-ref/models/pattern_recognition_module.py)).
 The collapse could be one unlucky seed — a different SISC clustering might produce
 patterns that the decoder *can* represent, or a different training seed might find a
 non-degenerate minimum.
