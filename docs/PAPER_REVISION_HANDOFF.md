@@ -18,23 +18,22 @@ replication study, **~9 pages**, compiles with no undefined refs.
 
 ## Branch layout (important)
 
-The same paper lives on **both** branches and they differ in **only three
-preamble lines**:
+`main` and `deli_work` now hold an **identical** paper: real author block,
+`\usepackage[preprint]{neurips_2026}`, and `\hypersetup{hidelinks}` on both. The
+earlier anonymized `deli_work` variant was dropped on the user's request.
 
-| Line | `main` (preprint) | `deli_work` (anonymous submission) |
-|---|---|---|
-| documentclass opt | `\usepackage[preprint]{neurips_2026}` | `\usepackage{neurips_2026}` |
-| hyperref | `\hypersetup{hidelinks}` present | removed |
-| author block | real names (Deli Lin, Eric Zhao, Lapo Linossi, Tom Haidinger) | `Anonymous Author(s)` |
+To produce an anonymous NeurIPS submission later, change three preamble lines:
+drop `[preprint]` (`\usepackage{neurips_2026}`), remove `\hypersetup{hidelinks}`,
+and set the author block to `Anonymous Author(s)`.
 
-The **body content is identical**. To sync a change across branches: commit on
-one branch, `git checkout <other-branch>`, `git checkout <src-branch> --
-NeurIPS_Paper/neurips_2026.tex NeurIPS_Paper/figures/*`, then re-apply the three
-preamble lines for the target branch, rebuild, commit. Stage **explicitly** only
-`NeurIPS_Paper/` files: the working tree carries unrelated changes (a modified
-`.gitignore`, an untracked `results/tatr/goog/k11/split/summary.csv`) that must
-not be swept into a commit. When switching to `main` they block the checkout, so
-`git stash push -u` first and `git stash pop` after returning to `deli_work`.
+To sync a change across branches: commit on one branch, `git checkout
+<other-branch>`, `git checkout <src-branch> -- NeurIPS_Paper/...`, rebuild,
+commit. While the branches match there is no preamble to re-apply. Stage
+**explicitly** only `NeurIPS_Paper/` files: the working tree carries unrelated
+changes (a modified `.gitignore`, an untracked
+`results/tatr/goog/k11/split/summary.csv`) that must not be swept into a commit.
+When switching to `main` they block the checkout, so `git stash push -u` first
+and `git stash pop` after returning to `deli_work`.
 
 ## Writing style we must keep (supervisor feedback + house rules)
 
