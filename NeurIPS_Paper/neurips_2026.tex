@@ -40,7 +40,7 @@
 \maketitle
 
 \begin{abstract}
-We revisit FTS-Diffusion (ICLR 2024), a financial time-series generator built from scale-invariant subsequence clustering (SISC), pattern-conditioned diffusion, and learned pattern evolution, and try to reproduce it from the released code. In our runs the released sampling pipeline is near-degenerate: synthetic S\&P 500 paths are one repeated motif tiled into an almost perfectly linear price ramp (linear-fit $R^2 \approx 1.0$), independent runs are nearly identical, and synthetic return volatility is about $20\times$ too small. We trace this to three choices in the released sampling code: a deterministic argmax rollout of the pattern chain, a one-unit decoder hidden state, and a commented-out magnitude normalization. We are explicit about confounds we cannot rule out: no checkpoints are shipped, and our training budget is reduced. Consistent with degeneracy, a continuous-rollout Train-on-Augmentation-Test-on-Real (TATR) setup appears to improve S\&P 500 forecasting by up to $85\%$, yet the same protocol never beats its baseline on GOOG or ZC=F. Augmentation carrying real structure would help on all three assets; a gain limited to the one trending asset points to a scale coincidence. On the released artifacts the authors' own Kolmogorov--Smirnov and Anderson--Darling return tests cleanly separate synthetic from real in essentially every window, so a simple return check detects the degeneracy that the downstream MAPE misses. We also do not reproduce the Appendix B.3 SISC toy targets. We present these as observations from one reproduction attempt rather than a verdict on the method.
+We revisit FTS-Diffusion (ICLR 2024), a financial time-series generator built from scale-invariant subsequence clustering (SISC), pattern-conditioned diffusion, and learned pattern evolution, and try to reproduce it from the released code. In our runs the released sampling pipeline is near-degenerate: synthetic S\&P 500 paths are one repeated motif tiled into an almost perfectly linear price ramp (linear-fit $R^2 \approx 1.0$), independent runs are nearly identical, and synthetic return volatility is about $20\times$ too small. We trace this to three choices in the released sampling code: a deterministic argmax rollout of the pattern chain, a one-unit decoder hidden state, and a commented-out magnitude normalization. We are explicit about confounds we cannot rule out: no checkpoints are shipped, and our training budget is reduced. Consistent with degeneracy, a continuous-rollout Train-on-Augmentation-Test-on-Real (TATR) setup appears to improve S\&P 500 forecasting by up to $85\%$, yet the same protocol never beats its baseline on GOOG or ZC=F. Augmentation carrying real structure would help on all three assets; a gain limited to the one trending asset points to a scale coincidence. We also do not reproduce the Appendix B.3 SISC toy targets. We present these as observations from one reproduction attempt rather than a verdict on the method.
 \end{abstract}
 
 \section{Introduction}
@@ -50,7 +50,7 @@ Deep generative models are attractive for finance because historical market data
 We reproduce FTS-Diffusion and extend its evaluation; we do not propose a new generator. We retrace the released pipeline and try several generation protocols, asking whether any rollout produces non-degenerate samples. We also test whether the SISC toy-data targets reproduce. The architecture is sensible, but in our hands the released sampling pipeline degenerates: the synthetic series collapses to a near-linear price ramp built from one repeated motif (Section~\ref{sec:degeneracy}). Given that collapse, the apparent S\&P 500 gain probably reflects a scale coincidence that does not transfer across assets. We cannot fully separate this from a known confound: the original authors release no trained checkpoints, so we train every module ourselves and at a reduced budget relative to their defaults.
 
 \paragraph{Contributions.}
-We make four contributions. (i) A code-level diagnosis of the released sampling pipeline (Section~\ref{sec:degeneracy}): three specific choices that drive the synthetic series to a near-degenerate linear ramp, plus the underspecifications we had to resolve. (ii) A 30-seed S\&P 500 TATR study, with the cross-asset observation that the continuous-rollout gain does not transfer to GOOG or corn futures (ZC=F), which we read as a scale coincidence. (iii) A return-distribution check showing that the authors' own Kolmogorov--Smirnov and Anderson--Darling tests detect the degenerate output that the downstream MAPE still rewards. (iv) A documented Appendix B.3 SISC toy-data gap. Throughout, we separate claims about the released artifacts from what would need the authors' checkpoints to settle.
+We make two contributions. (i) A code-level diagnosis of the released sampling pipeline (Section~\ref{sec:degeneracy}): three specific choices that drive the synthetic series to a near-degenerate linear ramp, plus the underspecifications we had to resolve. (ii) A 30-seed S\&P 500 TATR study, with the cross-asset observation that the continuous-rollout gain does not transfer to GOOG or corn futures (ZC=F), which we read as a scale coincidence. We also document a gap in reproducing the Appendix B.3 SISC toy-data targets. Throughout, we separate claims about the released artifacts from what would need the authors' checkpoints to settle.
 
 \section{Background: FTS-Diffusion}
 
@@ -87,7 +87,7 @@ Our primary 30-seed S\&P 500 downstream batch used stored SISC artifacts and PGM
 \section{Degeneracy of the released generation pipeline}
 \label{sec:degeneracy}
 
-We reproduce FTS-Diffusion end to end from the released code. Before downstream scores, we report what the generator actually produces, because it determines how the later numbers should be read. In our runs the released sampling path is near-degenerate: the synthetic price series is a single repeated motif tiled into an almost perfectly straight line. We identify three code choices behind this, with file references into our working copy (\texttt{fts-diffusion-ref/}), then show the degeneracy on the saved trajectories and the return distribution. We treat these as observations about the released artifacts under our setup rather than proofs about the method; Section~\ref{sec:degeneracy:confounds} lists the confounds we cannot rule out.
+We reproduce FTS-Diffusion end to end from the released code. Before downstream scores, we report what the generator actually produces, because it determines how the later numbers should be read. In our runs the released sampling path is near-degenerate: the synthetic price series is a single repeated motif tiled into an almost perfectly straight line. We identify three code choices behind this, with file references into our working copy (\texttt{fts-diffusion-ref/}), then show the degeneracy on the saved trajectories. We treat these as observations about the released artifacts under our setup rather than proofs about the method; Section~\ref{sec:degeneracy:confounds} lists the confounds we cannot rule out.
 
 \subsection{Three choices in the released sampling code}
 \label{sec:degeneracy:choices}
@@ -107,7 +107,7 @@ An autoregressive map $\text{state}_{m+1}=f(\text{state}_m)$ that is determinist
 \subsection{What the saved trajectories look like}
 \label{sec:degeneracy:observed}
 
-Figure~\ref{fig:degeneracy} contrasts a real S\&P 500 path with one released-pipeline synthetic path. That synthetic series is visually a straight line; a least-squares linear fit gives $R^2\approx0.99999$. Three quantitative observations accompany the figure. First, independent runs of a configuration are nearly identical, consistent with a deterministic rollout. Second, the PEM state sequence collapses (Table~\ref{tab:pem-collapse} and Figure~\ref{fig:pem-collapse}): on S\&P 500 a single pattern is used in $99.6\%$ of segments (a fixed point), while GOOG and ZC=F settle into period-2 cycles. Third, inspecting the trained PGM decoder pattern by pattern, the decoder output is near-constant across all patterns (cross-pattern standard deviation $<0.001$): an up-trend pattern and a down-trend pattern yield essentially the same segment. Together these tile one tiny upward-creeping segment across the horizon, producing exactly the linear ramp in Figure~\ref{fig:degeneracy}.
+Figure~\ref{fig:degeneracy} contrasts a real S\&P 500 path with one released-pipeline synthetic path. That synthetic series is visually a straight line; a least-squares linear fit gives $R^2\approx0.99999$. Three quantitative observations accompany the figure. First, independent runs of a configuration are nearly identical, consistent with a deterministic rollout. Second, the PEM state sequence collapses (Table~\ref{tab:pem-collapse} and Figure~\ref{fig:pem-collapse}): on S\&P 500 a single pattern is used in $99.6\%$ of segments (a fixed point), while GOOG and ZC=F settle into period-2 cycles. Third, inspecting the trained PGM decoder pattern by pattern, the decoder output is near-constant across all patterns (cross-pattern standard deviation $<0.001$): an up-trend pattern and a down-trend pattern yield essentially the same segment. Together these tile one tiny upward-creeping segment across the horizon, producing exactly the linear ramp in Figure~\ref{fig:degeneracy}. The same holds on the other assets: GOOG and ZC=F continuous rollouts are also near-linear (linear-fit $R^2\approx0.99999$), since their period-2 chains alternate between two near-identical segments.
 
 \begin{figure}[h]
   \centering
@@ -138,30 +138,6 @@ Figure~\ref{fig:degeneracy} contrasts a real S\&P 500 path with one released-pip
   \caption{PEM state-sequence collapse under the deterministic rollout. Bars show the share of generated segments that use the single most frequent pattern: $99.6\%$ on S\&P 500 (a fixed point) and $50\%$ on GOOG and ZC=F (period-2 cycles). A dashed line marks the uniform expectation $1/K$ that a non-degenerate chain would approach.}
   \label{fig:pem-collapse}
 \end{figure}
-
-\subsection{A return-distribution check detects the degeneracy}
-\label{sec:degeneracy:returns}
-
-A natural and direct check is the authors' own return-distribution test. Following their \texttt{distribution\_tests} routine, we form simple returns and compare real against synthetic with a Kolmogorov--Smirnov (KS) two-sample test and an Anderson--Darling (AD) $k$-sample test, where a higher $p$-value means the two return samples are harder to distinguish. Huang et al.\ report values consistent with indistinguishability (KS around $0.32$, AD around $0.12$). On the released artifacts the test instead separates the two cleanly (Table~\ref{tab:ks-ad}): across $300$ windows per asset and protocol the synthetic and real returns differ in essentially every window, with mean KS $p$-values at the $10^{-4}$ to $10^{-7}$ level and no window passing at $p>0.05$. Return volatility is the mechanism: the released synthetic series has $4$ to $60\times$ too little of it, because a near-linear ramp has almost no daily variation. A degenerate generator is expected to fail a distributional test, so failing one is no surprise; the useful contrast is that this simple return check catches the degeneracy while the downstream price-MAPE of Section~\ref{sec:results} still rewards the same output.
-
-\begin{table}[h]
-  \caption{Return-distribution check on the released artifacts. ``Mean KS $p$'' and ``\% indist.'' are over 300 windows of length 60; higher is more similar (the paper reports KS around $0.32$). ``Real/Syn.\ sd'' are daily-return standard deviations. \texttt{continuous} denotes an un-chunked continuous rollout, \texttt{authors} the independent-block protocol.}
-  \label{tab:ks-ad}
-  \centering
-  \small
-  \begin{tabular}{llrrrr}
-    \toprule
-    Asset & Protocol & Real sd & Syn.\ sd & Mean KS $p$ & \% indist. \\
-    \midrule
-    S\&P 500 & authors & 0.0109 & 0.0045 & $9\times10^{-4}$ & $0$ \\
-    S\&P 500 & continuous & 0.0109 & 0.00046 & $4\times10^{-7}$ & $0$ \\
-    GOOG & authors & 0.0184 & 0.0026 & $6\times10^{-5}$ & $0$ \\
-    GOOG & continuous & 0.0184 & 0.00029 & $4\times10^{-7}$ & $0$ \\
-    ZC=F & authors & 0.0181 & 0.0028 & $2\times10^{-5}$ & $0$ \\
-    ZC=F & continuous & 0.0181 & 0.00041 & $1\times10^{-6}$ & $0$ \\
-    \bottomrule
-  \end{tabular}
-\end{table}
 
 \subsection{Underspecifications we had to resolve}
 \label{sec:degeneracy:underspec}
@@ -263,7 +239,7 @@ Synthetic financial data can be beneficial for stress testing, augmentation, and
 
 \section{Conclusion}
 
-FTS-Diffusion has a sensible inductive bias for financial time series: variable-length motifs, pattern-conditioned diffusion, and learned motif evolution. Our reproduction attempt, however, did not yield a working generator from the released artifacts. In our hands the released sampling pipeline collapses to a near-linear ramp built from one repeated motif, the authors' own return-distribution test cleanly flags that output as far from real, and the one downstream setting that appears to improve forecasting does so only on a single strongly trending asset and fails to transfer to GOOG or ZC=F. We read that pattern as a scale coincidence rather than useful augmentation. We do not overstate it: without the authors' checkpoints and full training budget we cannot yet separate the degeneracy from undertraining, so we report empirical observations about the release, not a verdict on the method. One methodological point holds regardless: realistic-looking paths and a favorable downstream MAPE on a trending series are weak evidence on their own. Future synthetic-finance benchmarks should report exact rollout protocols, direct generator diagnostics such as the return-distribution check used here, and cross-asset transfer, rather than resting positive conclusions on a single asset.
+FTS-Diffusion has a sensible inductive bias for financial time series: variable-length motifs, pattern-conditioned diffusion, and learned motif evolution. Our reproduction attempt, however, did not yield a working generator from the released artifacts. In our hands the released sampling pipeline collapses to a near-linear ramp built from one repeated motif, and the one downstream setting that appears to improve forecasting does so only on a single strongly trending asset and fails to transfer to GOOG or ZC=F. We read that pattern as a scale coincidence rather than useful augmentation. We do not overstate it: without the authors' checkpoints and full training budget we cannot yet separate the degeneracy from undertraining, so we report empirical observations about the release, not a verdict on the method. One methodological point holds regardless: realistic-looking paths and a favorable downstream MAPE on a trending series are weak evidence on their own. Future synthetic-finance benchmarks should report exact rollout protocols and cross-asset transfer, rather than resting positive conclusions on a single asset.
 
 \bibliographystyle{plainnat}
 \bibliography{references}
