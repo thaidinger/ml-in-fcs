@@ -14,6 +14,7 @@
 \usepackage{microtype}
 \usepackage{xcolor}
 \usepackage{graphicx}
+\usepackage{subcaption}
 \usepackage{listings}
 
 \lstset{basicstyle=\ttfamily\footnotesize,breaklines=true,frame=single,
@@ -107,36 +108,14 @@ An autoregressive map $\text{state}_{m+1}=f(\text{state}_m)$ that is determinist
 \subsection{What the saved trajectories look like}
 \label{sec:degeneracy:observed}
 
-Figure~\ref{fig:degeneracy} contrasts a real S\&P 500 path with one released-pipeline synthetic path. That synthetic series is visually a straight line; a least-squares linear fit gives $R^2\approx0.99999$. Three quantitative observations accompany the figure. First, independent runs of a configuration are nearly identical, consistent with a deterministic rollout. Second, the PEM state sequence collapses (Table~\ref{tab:pem-collapse} and Figure~\ref{fig:pem-collapse}): on S\&P 500 a single pattern is used in $99.6\%$ of segments (a fixed point), while GOOG and ZC=F settle into period-2 cycles. Third, inspecting the trained PGM decoder pattern by pattern, the decoder output is near-constant across all patterns (cross-pattern standard deviation $<0.001$): an up-trend pattern and a down-trend pattern yield essentially the same segment. Together these tile one tiny upward-creeping segment across the horizon, producing exactly the linear ramp in Figure~\ref{fig:degeneracy}. The same holds on the other assets: GOOG and ZC=F continuous rollouts are also near-linear (linear-fit $R^2\approx0.99999$), since their period-2 chains alternate between two near-identical segments.
+Figure~\ref{fig:degeneracy} contrasts a real S\&P 500 path with one released-pipeline synthetic path. That synthetic series is visually a straight line; a least-squares linear fit gives $R^2\approx0.99999$. Three quantitative observations accompany the figure. First, independent runs of a configuration are nearly identical, consistent with a deterministic rollout. Second, the PEM state sequence collapses (Figure~\ref{fig:degeneracy}, bottom): on S\&P 500 a single pattern is used in $99.6\%$ of segments (a fixed point), while GOOG and ZC=F settle into period-2 cycles. Third, inspecting the trained PGM decoder pattern by pattern, the decoder output is near-constant across all patterns (cross-pattern standard deviation $<0.001$): an up-trend pattern and a down-trend pattern yield essentially the same segment. Together these tile one tiny upward-creeping segment across the horizon, producing exactly the linear ramp in Figure~\ref{fig:degeneracy}. The same holds on the other assets: GOOG and ZC=F continuous rollouts are also near-linear (linear-fit $R^2\approx0.99999$), since their period-2 chains alternate between two near-identical segments.
 
-\begin{figure}[h]
+\begin{figure}[t]
   \centering
-  \includegraphics[width=\linewidth]{05_degeneracy_sp500.pdf}
-  \caption{Released-pipeline output on S\&P 500. (a) Real close prices show rich structure. (b) One synthetic continuous-rollout path is almost perfectly linear (linear-fit $R^2\approx0.99999$). (c) Daily-return density (log scale): synthetic returns concentrate near a single value with standard deviation about $20\times$ smaller than real returns. We show one representative run; runs are nearly identical.}
+  \includegraphics[width=\linewidth]{05_degeneracy_sp500.pdf}\\[6pt]
+  \includegraphics[width=0.62\linewidth]{03_pem_collapse.pdf}
+  \caption{Released-pipeline degeneracy on S\&P 500. Top, left to right: (a) real close prices show rich structure; (b) one synthetic continuous-rollout path is almost perfectly linear (linear-fit $R^2\approx0.99999$); (c) daily-return density on a log scale, where synthetic returns concentrate near a single value with standard deviation about $20\times$ smaller than real returns. Bottom: PEM state-sequence collapse under the deterministic rollout (from saved \texttt{run\_*\_states.npy}), the share of generated segments that use the single most frequent pattern. A single pattern covers $99.6\%$ of segments on S\&P 500 ($K{=}14$, a fixed point, 2520 segments) and $50\%$ on GOOG ($K{=}11$, 2520 segments) and ZC=F ($K{=}11$, 1867 segments), both period-2 cycles; the dashed line marks the uniform expectation $1/K$ a non-degenerate chain would approach. We show one representative run; runs are nearly identical.}
   \label{fig:degeneracy}
-\end{figure}
-
-\begin{table}[h]
-  \caption{PEM state-sequence collapse under the deterministic rollout, from saved \texttt{run\_*\_states.npy}. ``Dominant pattern share'' is the fraction of generated segments using the most frequent pattern.}
-  \label{tab:pem-collapse}
-  \centering
-  \small
-  \begin{tabular}{lrrl}
-    \toprule
-    Asset ($K$) & Segments & Dominant pattern share & Regime \\
-    \midrule
-    S\&P 500 ($14$) & 2520 & $99.6\%$ & fixed point \\
-    GOOG ($11$) & 2520 & $50.0\%$ & period-2 cycle \\
-    ZC=F ($11$) & 1867 & $50.0\%$ & period-2 cycle \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=0.7\linewidth]{03_pem_collapse.pdf}
-  \caption{PEM state-sequence collapse under the deterministic rollout. Bars show the share of generated segments that use the single most frequent pattern: $99.6\%$ on S\&P 500 (a fixed point) and $50\%$ on GOOG and ZC=F (period-2 cycles). A dashed line marks the uniform expectation $1/K$ that a non-degenerate chain would approach.}
-  \label{fig:pem-collapse}
 \end{figure}
 
 \subsection{Underspecifications we had to resolve}
@@ -196,11 +175,22 @@ In that batch, the continuous chunked rollout reproduces a strong paper-like red
   \end{tabular}
 \end{table}
 
-\begin{figure}[h]
+\begin{figure}[t]
   \centering
-  \includegraphics[width=0.92\linewidth]{02_tatr_protocol_contrast.pdf}
-  \caption{TATR outcome changes sharply with the synthetic-series protocol. Continuous trajectories can look paper-like, while independent blocks worsen with augmentation. A dashed line marks the original S\&P 500 100-year TATR target, and shaded bands show min/max across seeds.}
-  \label{fig:tatr-protocol}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{02_tatr_protocol_contrast.pdf}
+    \caption{Within-asset protocol contrast (S\&P 500).}
+    \label{fig:tatr-protocol}
+  \end{subfigure}\hfill
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{07_cross_asset_nontransfer.pdf}
+    \caption{Cross-asset non-transfer.}
+    \label{fig:cross-asset}
+  \end{subfigure}
+  \caption{Downstream TATR depends on the synthetic-series protocol, and the S\&P 500 gain does not transfer. (a) On S\&P 500, continuous chunked (\texttt{split}) trajectories cross below the real-only baseline (dashed line marks the original 100-year TATR target; shaded bands show min/max across 30 seeds), while independent fixed blocks worsen as augmentation increases. (b) Change in downstream MAPE relative to each asset's no-augmentation baseline (below zero beats the real-only baseline): the \texttt{split} rollout helps only on S\&P 500 (best $-78\%$, final $-72\%$); on GOOG and ZC=F it never beats baseline and finishes $+92\%$ and $+179\%$. A protocol carrying genuine structure would not flip sign across assets.}
+  \label{fig:downstream-tatr}
 \end{figure}
 
 Synthetic price levels explain the effect. Continuous trajectories start near 1253 and end near 7085 (mean level 4138); independent blocks start from the same level but repeatedly reset, ending near 1249 (mean 1214). Continuous rollouts thus drift the near-linear ramp through the scale of the upward-trending S\&P 500 test period, so percentage error can fall simply because synthetic and real price levels overlap, not because the dynamics are informative. Independent blocks stay near the initial level, the overlap never happens, and error grows. Read with Section~\ref{sec:degeneracy}, this looks like a scale effect rather than useful augmentation. Cross-asset evidence below provides the cleaner test.
@@ -209,27 +199,53 @@ Train-on-Mixture-Test-on-Real (TMTR) controls, which train the forecaster on a f
 
 We make no claim of misconduct; the available generation details do not pin down the downstream result uniquely. Once the generator is seen to be degenerate, though, the simplest reading of the S\&P 500 gain is a scale coincidence rather than augmentation that works under the right protocol. Either way, a reproducible benchmark should treat the Markov-chain rollout, initialization, block slicing, scaler fitting, and warm-up windows as first-class parameters, and should not rest a positive conclusion on downstream MAPE for a single trending asset.
 
-GOOG and ZC=F test the coincidence reading most directly. We regenerated the stated real-asset SISC and architecture artifacts for both with $K=11$, $l_{\min}=10$, and $l_{\max}=21$. A strict author-faithful downstream TATR rerun is blocked by the released S\&P-style split logic, which consumes $252\times5=1260$ held-out initialization points whereas the GOOG and ZC=F 80/20 held-out windows contain 744 and 963 points, so we adapted the split while keeping the proportions comparable. This changes the absolute MAPE level but not the sign of the augmentation effect, since every percentage is computed within the same split relative to that protocol's own no-augmentation baseline. Under that within-split comparison the effect is negative on both assets and for both protocol families. Independent fixed blocks (\texttt{authors}) finish $1003\%$ worse on GOOG and $75\%$ worse on ZC=F. Nor does the continuous chunked (\texttt{split}) rollout that appears to help on S\&P 500 transfer (Figure~\ref{fig:cross-asset}): its best point over the whole sweep equals the no-augmentation baseline (it never beats it), and it finishes $92\%$ worse on GOOG and $179\%$ worse on ZC=F. If the generator carried useful structure, the protocol would not flip sign across assets; a gain confined to the one strongly trending asset points to a scale coincidence, not augmentation value. We therefore treat GOOG and ZC=F as covered for SISC/architecture setup and real-asset diagnostics rather than author-faithful downstream replications, but the within-split sign does not depend on author-faithfulness.
+GOOG and ZC=F test the coincidence reading most directly. We regenerated the stated real-asset SISC and architecture artifacts for both with $K=11$, $l_{\min}=10$, and $l_{\max}=21$. A strict author-faithful downstream TATR rerun is blocked by the released S\&P-style split logic, which consumes $252\times5=1260$ held-out initialization points whereas the GOOG and ZC=F 80/20 held-out windows contain 744 and 963 points, so we adapted the split while keeping the proportions comparable. This changes the absolute MAPE level but not the sign of the augmentation effect, since every percentage is computed within the same split relative to that protocol's own no-augmentation baseline. Under that within-split comparison the effect is negative on both assets and for both protocol families (Table~\ref{tab:cross-asset}). Independent fixed blocks (\texttt{authors}) finish $1003\%$ worse on GOOG and $75\%$ worse on ZC=F. Nor does the continuous chunked (\texttt{split}) rollout that appears to help on S\&P 500 transfer (Figure~\ref{fig:cross-asset}): its best point over the whole sweep equals the no-augmentation baseline (it never beats it), and it finishes $92\%$ worse on GOOG and $179\%$ worse on ZC=F. If the generator carried useful structure, the protocol would not flip sign across assets; a gain confined to the one strongly trending asset points to a scale coincidence, not augmentation value. We therefore treat GOOG and ZC=F as covered for SISC/architecture setup and real-asset diagnostics rather than author-faithful downstream replications, but the within-split sign does not depend on author-faithfulness.
 
-\begin{figure}[h]
+\begin{table}[h]
+  \caption{Cross-asset TATR transfer. Final change in one-day-ahead MAPE relative to each asset's own no-augmentation baseline (lower is better); ``best'' is the minimum over the augmentation sweep. The continuous chunked (\texttt{split}) rollout beats the baseline only on S\&P 500.}
+  \label{tab:cross-asset}
   \centering
-  \includegraphics[width=0.8\linewidth]{07_cross_asset_nontransfer.pdf}
-  \caption{Cross-asset non-transfer of the continuous chunked (\texttt{split}) rollout. Bars show the change in downstream MAPE relative to each asset's no-augmentation baseline (below zero beats the real-only baseline). The rollout helps only on S\&P 500 (best $-78\%$, final $-72\%$); on GOOG and ZC=F it never beats baseline and finishes $+92\%$ and $+179\%$. A protocol carrying genuine structure would not flip sign across assets.}
-  \label{fig:cross-asset}
-\end{figure}
+  \small
+  \begin{tabular}{lrrr}
+    \toprule
+    Asset & \texttt{authors} final & \texttt{split} best & \texttt{split} final \\
+    \midrule
+    S\&P 500 & $+208.4\%$ & $-77.6\%$ & $-72.2\%$ \\
+    GOOG & $+1003\%$ & $+0.0\%$ & $+92\%$ \\
+    ZC=F & $+75\%$ & $+0.0\%$ & $+179\%$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 \subsection{SISC toy-data replication gap}
 
-We also stress-tested SISC on the Appendix B.3 simulated-data setting. Two metrics matter here. Per-unit DTW is the dynamic-time-warping distance between a recovered pattern centroid and its target shape, so lower is better. Jaccard is a segmentation-agreement measure, $|A \cap B| / |A \cup B|$, between the recovered set of segment boundaries $A$ and the ground-truth set $B$: it equals 1.0 when the two segmentations coincide and 0 when they share no boundary, and we report a tolerance-2 variant that counts a recovered boundary as matched if it falls within two time steps of a true one. Huang et al.\ report one-pattern per-unit DTW/Jaccard of $0.009/0.938$ and multi-pattern average per-unit DTW/Jaccard of $0.01/0.784$. On our derived one-pattern runs, the best available DTW is $0.0202$ and the best tolerance-2 boundary-Jaccard proxy is $0.8693$. Across 18 successful multi-pattern runs varying seed, $l_{\max}$, and maximum iterations, our best average per-unit DTW was $0.0321$, and our best author-style interval IoU (intersection over union of recovered and true segment intervals) was $0.6418$. Figure~\ref{fig:b3-gap} summarizes the multi-pattern gap.
+We also stress-tested SISC on the Appendix B.3 simulated-data setting. Two metrics matter here. Per-unit DTW is the dynamic-time-warping distance between a recovered pattern centroid and its target shape, so lower is better. Jaccard is a segmentation-agreement measure, $|A \cap B| / |A \cup B|$, between the recovered set of segment boundaries $A$ and the ground-truth set $B$: it equals 1.0 when the two segmentations coincide and 0 when they share no boundary, and we report a tolerance-2 variant that counts a recovered boundary as matched if it falls within two time steps of a true one. Huang et al.\ report one-pattern per-unit DTW/Jaccard of $0.009/0.938$ and multi-pattern average per-unit DTW/Jaccard of $0.01/0.784$. On our derived one-pattern runs, the best available DTW is $0.0202$ and the best tolerance-2 boundary-Jaccard proxy is $0.8693$. Across 18 successful multi-pattern runs varying seed, $l_{\max}$, and maximum iterations, our best average per-unit DTW was $0.0321$, and our best author-style interval IoU (intersection over union of recovered and true segment intervals) was $0.6418$. Table~\ref{tab:b3} reports both settings, and Figure~\ref{fig:b3-gap} summarizes the multi-pattern gap.
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=0.92\linewidth]{04_b3_metric_gap.pdf}
-  \caption{Appendix B.3 SISC replication gap on the toy data. Best replication runs do not reach the reported centroid or segmentation targets.}
+  \includegraphics[width=\linewidth]{04_b3_metric_gap.pdf}
+  \caption{Appendix B.3 SISC replication gap on the toy data. (a) Centroid recovery (per-unit DTW, lower is better) and (b) segmentation recovery (Jaccard for the paper and our seed-42 run, interval IoU for the best sweep run; higher is better): our best multi-pattern runs do not reach the reported targets (dashed lines). (c) All 18 sweep runs (varying seed, $l_{\max}$, and maximum iterations) plotted as per-unit DTW against tolerance-2 boundary Jaccard; every run sits far from the published target (star), high in DTW and low in boundary agreement.}
   \label{fig:b3-gap}
 \end{figure}
 
-Increasing SISC iterations from 10 to 20 and changing $l_{\max}$ from 20 to 21 did not close the gap. Our best strict boundary Jaccard at tolerance 2 was $0.3608$, and the best reference-code-style interval IoU (intersection over union of recovered and true segment intervals) was $0.6418$. Our best centroid metric remained about $3.2\times$ the reported target. We could not reproduce the exact toy benchmark, though this says nothing about the general idea of SISC: the released tree does not expose the exact one-pattern construction, synthetic generator, standard pattern arrays, seed state, or metric implementation used to produce Appendix B.3. More broadly, helper defaults matter: warm-up windows, augmentation scales, plotting conventions, and interval-overlap metrics can all change the apparent result if they go unaudited.
+\begin{table}[h]
+  \caption{Appendix B.3 SISC reproduction gap. Per-unit DTW is lower-is-better; the Jaccard/IoU column is higher-is-better. Reported values are from Huang et al.; ours are the best over our seed, $l_{\max}$, and iteration sweeps.}
+  \label{tab:b3}
+  \centering
+  \small
+  \begin{tabular}{llrr}
+    \toprule
+    Setting & Source & Per-unit DTW & Jaccard / IoU \\
+    \midrule
+    One-pattern & reported & $0.009$ & $0.938$ \\
+    One-pattern & ours & $0.0202$ & $0.869$ \\
+    Multi-pattern & reported & $0.01$ & $0.784$ \\
+    Multi-pattern & ours & $0.0321$ & $0.642$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Increasing SISC iterations from 10 to 20 and changing $l_{\max}$ from 20 to 21 did not close the gap. Our best strict boundary Jaccard at tolerance 2 was $0.3608$. Our best centroid metric remained about $3.2\times$ the reported target. We could not reproduce the exact toy benchmark, though this says nothing about the general idea of SISC: the released tree does not expose the exact one-pattern construction, synthetic generator, standard pattern arrays, seed state, or metric implementation used to produce Appendix B.3. More broadly, helper defaults matter: warm-up windows, augmentation scales, plotting conventions, and interval-overlap metrics can all change the apparent result if they go unaudited.
 
 \section{Limitations and broader impact}
 
