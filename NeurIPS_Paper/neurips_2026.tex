@@ -131,7 +131,7 @@ Figure~\ref{fig:degeneracy} contrasts a real S\&P 500 path with one released-pip
 \subsection{Underspecifications}
 \label{sec:degeneracy:underspec}
 
-Several choices that matter for the result are not pinned down by the paper. Table~\ref{tab:underspec} lists the ones we encountered, separating the three that are load-bearing for the degeneracy above from the compute-driven confounds and the remaining setup choices. We kept the released values wherever they existed, so that the run reflects the artifact as published rather than our preferences. We intend this as an audit aid rather than an accusation: underspecification is common, but here it coincides with the failure modes.
+Several choices that matter for the result are not pinned down by the paper. Table~\ref{tab:underspec} lists the ones we encountered. We kept the released values wherever they existed, so that the run reflects the artifact as published rather than our preferences. We intend this as an audit aid rather than an accusation: underspecification is common, but here it coincides with the failure modes.
 
 \begin{table}[h]
   \caption{Paper-vs-release underspecifications we resolved. ``Released'' marks a value shipped in the released configuration that we kept; ``ours'' marks a choice we had to make.}
@@ -139,18 +139,18 @@ Several choices that matter for the result are not pinned down by the paper. Tab
   \centering
   \small
   \setlength{\tabcolsep}{4pt}
-  \begin{tabular}{p{4.7cm}p{1.4cm}p{4.2cm}p{2.7cm}}
+  \begin{tabular}{p{5.2cm}p{1.6cm}p{5cm}}
     \toprule
-    Design choice & In paper? & Value used & Note \\
+    Design choice & In paper? & Value used \\
     \midrule
-    Scaling-AE decoder hidden dim & no & $1$ (released) & load-bearing \\
-    PEM rollout policy & no & argmax (released) & load-bearing \\
-    Magnitude normalization at sampling & implied & commented out (released) & load-bearing \\
-    PGM / PEM training epochs & no & $30$ / $60$ (ours; released $400$ / $1000$) & confound \\
-    PCDM diffusion steps & no & $30$ (ours; released $100$) & confound \\
-    SISC $k$-means seed & no & $42$ (released) & shared seed \\
-    GOOG / ZC=F downstream split & S\&P only & $62.5\%$ train (ours) & cross-asset parity \\
-    Initial segment for generation & no & first test segment / random (ours) & protocol switch \\
+    Scaling-AE decoder hidden dim & no & $1$ (released) \\
+    PEM rollout policy & no & argmax (released) \\
+    Magnitude normalization at sampling & implied & commented out (released) \\
+    PGM / PEM training epochs & no & $30$ / $60$ (ours; released $400$ / $1000$) \\
+    PCDM diffusion steps & no & $30$ (ours; released $100$) \\
+    SISC $k$-means seed & no & $42$ (released) \\
+    GOOG / ZC=F downstream split & S\&P only & $62.5\%$ train (ours) \\
+    Initial segment for generation & no & first test segment / random (ours) \\
     \bottomrule
   \end{tabular}
 \end{table}
