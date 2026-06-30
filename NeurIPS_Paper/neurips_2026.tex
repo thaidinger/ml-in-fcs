@@ -166,7 +166,7 @@ We stress that the evidence above concerns the released artifacts as configured 
 \section{Replication results}
 \label{sec:results}
 
-\subsection{TATR depends on the synthetic-series protocol}
+\subsection{Protocol dependence of TATR}
 
 Huang et al.\ report that appending 100 synthetic years reduces one-day-ahead MAPE by $17.9\%$, $15.3\%$, and $17.4\%$ on S\&P 500, GOOG, and ZC=F, respectively. Our current S\&P 500 evidence has three layers. First, the stored result matrices do not support that trend for the documented \texttt{authors} independent-block protocol: the stored S\&P 500 \texttt{authors} curve finishes $208.4\%$ worse than its baseline, while the continuous-trajectory curve finishes $71.6\%$ better. Second, a one-seed protocol search found that continuous-rollout variants finish $76.5$--$85.4\%$ better, whereas independent fixed blocks finish $96.5\%$ worse. Third, Table~\ref{tab:tatr-summary} reports the primary 30-seed batch across the three protocols.
 
