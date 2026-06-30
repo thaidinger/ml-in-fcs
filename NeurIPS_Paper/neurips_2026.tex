@@ -90,10 +90,10 @@ Our primary 30-seed S\&P 500 downstream batch used stored SISC artifacts and PGM
 
 We reproduce FTS-Diffusion end to end from the released code. Before downstream scores, we report what the generator actually produces, because it determines how the later numbers should be read. In our runs the released sampling path is near-degenerate: the synthetic price series is a single repeated motif tiled into an almost perfectly straight line. We identify three code choices behind this, with file references into our working copy (\texttt{fts-diffusion-ref/}), then show the degeneracy on the saved trajectories. We treat these as observations about the released artifacts under our setup rather than proofs about the method; Section~\ref{sec:degeneracy:confounds} lists the confounds we cannot rule out.
 
-\subsection{Three choices in the released sampling code}
+\subsection{Three choices in the sampling code}
 \label{sec:degeneracy:choices}
 
-\paragraph{(1) Deterministic argmax rollout of the pattern chain.} FTS-Diffusion rolls out the pattern-evolution module (PEM) by taking \texttt{argmax} for the next pattern and the next length, and the raw regression mean for the next magnitude, with no sampling (\texttt{fts-diffusion-ref/models/sampling.py}, lines 30, 33, 34):
+\paragraph{(1) Deterministic argmax rollout.} FTS-Diffusion rolls out the pattern-evolution module (PEM) by taking \texttt{argmax} for the next pattern and the next length, and the raw regression mean for the next magnitude, with no sampling (\texttt{fts-diffusion-ref/models/sampling.py}, lines 30, 33, 34):
 \begin{lstlisting}
 pred_pattern   = torch.argmax(probabilities_pattern, dim=1).unsqueeze(0)
 pred_length    = torch.argmax(probabilities_length,  dim=1).unsqueeze(0) + l_min
@@ -105,20 +105,20 @@ An autoregressive map $\text{state}_{m+1}=f(\text{state}_m)$ that is determinist
 
 \paragraph{(3) Commented-out magnitude normalization.} A sampling step that would rescale the generated shape to unit range before multiplying by the magnitude $\beta$ is commented out (\texttt{sampling.py}, lines 53--55), so the emitted segment has magnitude $\beta\times(\text{whatever range the decoder produced})$ rather than $\beta$. In our runs that range is on the order of $0.07$, far below the intended scale, which removes the magnitude information $\beta$ was meant to carry.
 
-\subsection{Where the implementation diverges from the paper}
+\subsection{Mismatches with the paper}
 \label{sec:degeneracy:mismatch}
 
 Beyond the sampling choices above, the released training code departs from the paper's stated design in three places.
 
-\paragraph{(1) Duration trained as classification, not regression.} Although the paper models the next pattern as multi-class classification and the duration $\alpha$ and magnitude $\beta$ as regression, the pattern-evolution head treats duration as classification too: it emits $\texttt{n\_patterns}+\texttt{range\_length}+1$ logits and trains the length slice (one logit per duration in $10$--$21$) with a cross-entropy loss against the integer target $\text{length}-10$, exactly like the pattern (\texttt{pattern\_evolution\_module.py}, lines 77, 98, 105, 111). Only the magnitude is regressed, and with an $L_1$ loss; the $L_2$ \texttt{MSELoss} line is commented out (lines 78--79). Appendix~D.1 of the original paper allows that treating the length as classification is feasible, yet its main text describes regression.
+\paragraph{(1) Duration trained as classification.} Although the paper models the next pattern as multi-class classification and the duration $\alpha$ and magnitude $\beta$ as regression, the pattern-evolution head treats duration as classification too: it emits $\texttt{n\_patterns}+\texttt{range\_length}+1$ logits and trains the length slice (one logit per duration in $10$--$21$) with a cross-entropy loss against the integer target $\text{length}-10$, exactly like the pattern (\texttt{pattern\_evolution\_module.py}, lines 77, 98, 105, 111). Only the magnitude is regressed, and with an $L_1$ loss; the $L_2$ \texttt{MSELoss} line is commented out (lines 78--79). Appendix~D.1 of the original paper allows that treating the length as classification is feasible, yet its main text describes regression.
 
-\paragraph{(2) Magnitude $\beta$ does not condition generation.} \texttt{generate} receives only the pattern and length (\texttt{pattern\_generation\_module.py}, line 74), with an author comment that magnitude control was dropped from the denoising step (line 104). As in Section~\ref{sec:degeneracy:choices}(3), $\beta$ is reapplied only as a post-hoc multiply on top of a commented-out unit-range normalization, so it scales an arbitrary-range output rather than a unit shape.
+\paragraph{(2) Magnitude $\beta$ ignored at generation.} \texttt{generate} receives only the pattern and length (\texttt{pattern\_generation\_module.py}, line 74), with an author comment that magnitude control was dropped from the denoising step (line 104). As in Section~\ref{sec:degeneracy:choices}(3), $\beta$ is reapplied only as a post-hoc multiply on top of a commented-out unit-range normalization, so it scales an arbitrary-range output rather than a unit shape.
 
-\paragraph{(3) Deterministic rollout, not a stochastic chain.} Generation rolls out the chain with the \texttt{argmax} of Section~\ref{sec:degeneracy:choices}(1), whereas the paper's Section~3.1 describes a stochastic Markov chain $Q(\cdot\,|\,\cdot)$. In fairness, the paper's Algorithm~2 also writes the transition as a deterministic map, so the contradiction is between the stochastic description and the implementation.
+\paragraph{(3) Deterministic rollout.} Generation rolls out the chain with the \texttt{argmax} of Section~\ref{sec:degeneracy:choices}(1), whereas the paper's Section~3.1 describes a stochastic Markov chain $Q(\cdot\,|\,\cdot)$. In fairness, the paper's Algorithm~2 also writes the transition as a deterministic map, so the contradiction is between the stochastic description and the implementation.
 
 We also probed why that deterministic rollout collapses to one motif (\texttt{scripts/probe\_pem\_transition.py}). On the trained S\&P 500 PEM the next-pattern softmax is near-uniform: its maximum is $0.11$ to $0.17$ against a uniform $1/14\approx0.071$, peaked only thinly on the data mode $p{=}12$. So \texttt{argmax} returns $p{=}12$ for 13 of the 14 input patterns, and sweeping the length and magnitude inputs it never leaves the high-frequency SISC patterns $\{0,1,2,3,6,8,12\}$. The collapse is \texttt{argmax} acting on an undertrained, near-uniform head (the next-pattern loss carries weight $0.05$), not a learned absorbing transition; multinomial sampling from the same head would not collapse.
 
-\subsection{What the saved trajectories look like}
+\subsection{Generated trajectories}
 \label{sec:degeneracy:observed}
 
 Figure~\ref{fig:degeneracy} contrasts a real S\&P 500 path with one released-pipeline synthetic path. That synthetic series is visually a straight line; a least-squares linear fit gives $R^2\approx0.99999$. Three quantitative observations accompany the figure. First, independent runs of a configuration are nearly identical, consistent with a deterministic rollout. Second, the PEM state sequence collapses (Figure~\ref{fig:degeneracy}, bottom): on S\&P 500 a single pattern is used in $99.6\%$ of segments (a fixed point), while GOOG and ZC=F settle into period-2 cycles. Third, inspecting the trained PGM decoder pattern by pattern, the decoder output is near-constant across all patterns (cross-pattern standard deviation $<0.001$): an up-trend pattern and a down-trend pattern yield essentially the same segment. Together these tile one tiny upward-creeping segment across the horizon, producing exactly the linear ramp in Figure~\ref{fig:degeneracy}. The same holds on the other assets: GOOG and ZC=F continuous rollouts are also near-linear (linear-fit $R^2\approx0.99999$), since their period-2 chains alternate between two near-identical segments.
@@ -131,7 +131,7 @@ Figure~\ref{fig:degeneracy} contrasts a real S\&P 500 path with one released-pip
   \label{fig:degeneracy}
 \end{figure}
 
-\subsection{Underspecifications we had to resolve}
+\subsection{Underspecifications}
 \label{sec:degeneracy:underspec}
 
 Several choices that matter for the result are not pinned down by the paper. Table~\ref{tab:underspec} lists the ones we encountered, separating the three that are load-bearing for the degeneracy above from the compute-driven confounds and the remaining setup choices. We kept the released values wherever they existed, so that the run reflects the artifact as published rather than our preferences. We intend this as an audit aid rather than an accusation: underspecification is common, but here it coincides with the failure modes.
@@ -158,7 +158,7 @@ Several choices that matter for the result are not pinned down by the paper. Tab
   \end{tabular}
 \end{table}
 
-\subsection{Confounds and what we cannot rule out}
+\subsection{Confounds}
 \label{sec:degeneracy:confounds}
 
 We stress that the evidence above concerns the released artifacts as configured and trained in our hands rather than the method in principle. Two confounds prevent a stronger claim. First, no trained checkpoints are shipped with the release, so every reproduction retrains from the released scripts and we cannot compare against the authors' own generations. Second, our training budget is reduced relative to the released defaults (PGM $30$ vs.\ $400$ epochs, PEM $60$ vs.\ $1000$, PCDM $30$ vs.\ $100$ steps), a compute-driven choice that a reviewer can reasonably challenge. Three non-exclusive explanations remain that we have not fully separated: undertraining, an unlucky seed, and the one-unit decoder capacity. A full-budget retrain across seeds would falsify or confirm the undertraining hypothesis; we flag it as the natural next experiment and do not assert a method-level conclusion without it. Given how unusual a one-unit decoder hidden state is for a published generative model, it would also be reasonable to ask the authors directly whether that value, and the commented-out magnitude normalization, correspond to the configuration behind the paper's headline results.
