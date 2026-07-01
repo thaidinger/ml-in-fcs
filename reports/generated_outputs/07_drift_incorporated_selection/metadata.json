@@ -1,0 +1,19 @@
+{
+  "block_size": 21,
+  "elapsed_seconds": 32.686182165984064,
+  "n_init": 252,
+  "n_seeds": 1000,
+  "n_test": 1000,
+  "n_train": 3000,
+  "n_val": 1000,
+  "notes": [
+    "The oracle_test_mse selector uses held-out test MSE and is included only as a reference upper bound.",
+    "The stylized score excludes raw-return autocorrelation and the predictable-drift components.",
+    "Candidate augmentations share the same magnitude path within seed; only signs differ."
+  ],
+  "null_reps": 200,
+  "penalty_weight": 0.25,
+  "python": "python3",
+  "reps_per_family": 8,
+  "ridge": 0.01
+}

@@ -1,0 +1,8 @@
+{
+  "description": "Tracked summaries used by scripts/build_paper_figures.py for the degeneracy figure.",
+  "files": [
+    "generation_degeneracy_summary.csv",
+    "pem_state_collapse_summary.csv",
+    "return_distribution_summary.csv"
+  ]
+}

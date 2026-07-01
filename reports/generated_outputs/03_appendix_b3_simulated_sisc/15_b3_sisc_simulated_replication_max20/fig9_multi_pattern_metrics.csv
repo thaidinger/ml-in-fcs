@@ -1,0 +1,9 @@
+metric,paper,ours
+per_unit_dtw_pattern_0,approx 0.01,0.02178106808769369
+per_unit_dtw_pattern_1,approx 0.01,0.031197866732585976
+per_unit_dtw_pattern_2,approx 0.01,0.034707593846292954
+per_unit_dtw_pattern_3,approx 0.01,0.07161909024547455
+avg_per_unit_dtw,0.01,0.03982640472801179
+boundary_jaccard_tol2,0.784,0.3723404255319149
+pointwise_label_accuracy,,0.5286758082274047
+per_segment_majority_accuracy,,0.6062874251497006

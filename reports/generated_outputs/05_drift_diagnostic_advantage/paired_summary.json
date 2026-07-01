@@ -1,0 +1,13 @@
+{
+  "delta_ratio_mean": 6.406928582344851,
+  "delta_ratio_median": 5.784435848946543,
+  "hidden_acf_r_lag1_mean": 0.4035516026620959,
+  "hidden_delta_gt_iid_count": 100,
+  "hidden_delta_mean": 0.5383291249287918,
+  "hidden_sample_id": "markov_signs_p0.85",
+  "hidden_signed_distance_mean": 0.7499310086251297,
+  "iid_acf_r_lag1_mean": -0.005506039708128768,
+  "iid_delta_mean": 0.10045498551347969,
+  "iid_signed_distance_mean": 0.8096553555740081,
+  "n_pairs": 100
+}

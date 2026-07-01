@@ -1,0 +1,4 @@
+asset,k,segments,dominant_pattern_share_pct,regime
+sp500,14,2520,99.6,fixed point
+goog,11,2520,50.0,period-2 cycle
+zcf,11,1867,50.0,period-2 cycle

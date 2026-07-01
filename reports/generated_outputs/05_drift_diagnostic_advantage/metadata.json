@@ -1,0 +1,20 @@
+{
+  "base_seed": 1000,
+  "garch": {
+    "alpha": 0.08,
+    "beta": 0.9,
+    "df": 5,
+    "omega": 0.02
+  },
+  "interpretation": "Magnitude paths are identical within seed; increasing Markov sign persistence creates predictable drift without changing absolute-return volatility diagnostics.",
+  "n_eval": 1000,
+  "n_seeds": 100,
+  "n_train": 4000,
+  "persistence": [
+    0.55,
+    0.65,
+    0.75,
+    0.85,
+    0.9
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "description": "Retained tabular summaries generated from stored TATR matrices and reference summary CSVs.",
+  "tatr_matrices": 7,
+  "tatr_matrix_files": [
+    "results/tatr/goog/k11/authors/results_matrix.csv",
+    "results/tatr/goog/k11/single/results_matrix.csv",
+    "results/tatr/sp500/k14/authors/results_matrix.csv",
+    "results/tatr/sp500/k14/random_init/results_matrix.csv",
+    "results/tatr/sp500/k14/single/results_matrix.csv",
+    "results/tatr/zcf/k11/authors/results_matrix.csv",
+    "results/tatr/zcf/k11/single/results_matrix.csv"
+  ],
+  "reference_summary_rows": 16,
+  "tables": [
+    "tables/reference_detail.csv",
+    "tables/reference_summary.csv",
+    "tables/tatr_long.csv",
+    "tables/tatr_summary.csv"
+  ]
+}

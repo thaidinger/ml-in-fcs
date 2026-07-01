@@ -1,0 +1,48 @@
+# Generated Outputs
+
+This directory contains generated replication artifacts and diagnostics. It is organized by storyline so reviewers can quickly distinguish the S&P downstream replication work from the GOOG/ZCF real-asset SISC work, the Appendix B.3 simulated-data SISC investigation, and retained related diagnostics.
+
+## Navigation
+
+| Folder | Purpose | Read first |
+|---|---|---|
+| `01_sp500_downstream_replication/` | S&P 500 TMTR/TATR downstream replication, protocol diagnostics, and long-batch checks. | `01_sp500_downstream_replication/README.md` |
+| `02_goog_zcf_real_asset_sisc/` | GOOG and ZC=F real-asset SISC pattern-library artifacts and comparison notes. | `02_goog_zcf_real_asset_sisc/README.md` |
+| `03_appendix_b3_simulated_sisc/` | Appendix B.3 simulated-data SISC replication attempts and sweep results. | `03_appendix_b3_simulated_sisc/README.md` |
+| `00_release_pipeline_diagnostics/` | Compact summaries used to regenerate the paper degeneracy figure. | `00_release_pipeline_diagnostics/README.md` |
+| `05_original_claim_reproduction_audit/` | Claim-by-claim audit of original-paper results that were not reproduced. | `05_original_claim_reproduction_audit/README.md` |
+| `05_drift_diagnostic_advantage/` | Predictable-drift sign-sweep experiment retained as related diagnostic work. | `05_drift_diagnostic_advantage/report.md` |
+| `06_end_to_end_drift_diagnostics/` | End-to-end predictable-drift diagnostics over real assets and stored FTS-Diffusion protocols. | `06_end_to_end_drift_diagnostics/report.md` |
+| `07_drift_incorporated_selection/` | Drift-incorporated augmentation-selection experiment retained as related work. | `07_drift_incorporated_selection/report.md` |
+
+Top-level files:
+
+- `EXPERIMENT_REGISTRY.md`: duplicate-run guard with settings keys for each completed experiment.
+- `experiment_registry.csv`: machine-readable version of the experiment registry.
+- `SETTINGS_COMPARISON.md`: original settings comparison for the S&P 500 downstream experiments.
+- `settings_summary.csv`: machine-readable version of the settings comparison.
+- `MANIFEST.txt`: grouped inventory of the retained output folders.
+
+Before launching a new experiment, check `EXPERIMENT_REGISTRY.md`. If the proposed settings match an existing `Settings key`, treat it as already run unless the code, data, or evaluation metric has changed.
+
+## Headline Results
+
+### S&P 500 Downstream Replication
+
+The released author-style protocol using stored S&P artifacts did not reproduce a sustained downward TATR trend. A continuous synthetic trajectory protocol can reproduce a paper-like drop, but that differs from the released reference-code independent-block TATR protocol. The long-batch run supports the same conclusion across seeds.
+
+### GOOG and ZC=F Real-Asset SISC
+
+GOOG and corn futures (`ZC=F`) SISC pattern libraries were generated with `K=11` and plotted. These real-asset pattern libraries cannot be scored against the paper's Appendix B.3 metrics because real market data has no ground-truth pattern labels or segment boundaries.
+
+### Appendix B.3 Simulated SISC
+
+The B.3-specific simulated-data replication attempts did not reproduce the paper's reported values. The best sweep result reached average per-unit DTW `0.0321` versus the paper's `0.01`; the best author-style interval IoU reached `0.6418` versus the paper's `0.784`.
+
+### Original Claim Audit
+
+The original-paper reproduction audit lists the precise failed claims, the closest local evidence, and the failing mechanism. The main failures are: S&P 500 TATR is not uniquely recovered from rollout details, GOOG/ZC=F author-faithful TATR is blocked by the released split logic, and Appendix B.3 lacks the exact toy-generator and metric details needed for exact recovery.
+
+## Hygiene
+
+Author/reference source code remains outside this generated-output tree. OS metadata files such as `.DS_Store` were removed from this directory before regrouping.

@@ -1,0 +1,39 @@
+{
+  "asset": "sp500",
+  "experiment": "TATR",
+  "purpose": "multi-seed robustness check for continuous-vs-independent protocol discrepancy",
+  "requested_runtime": "approximately 1 hour on laptop",
+  "attempted_seeds": [
+    42,
+    43,
+    44
+  ],
+  "completed_seeds": [
+    42,
+    43
+  ],
+  "stopped_reason": "Stopped after two complete seeds to stay near the requested one-hour runtime.",
+  "settings": {
+    "eval_blocks": [
+      0,
+      30,
+      50,
+      70,
+      100
+    ],
+    "epochs": 100,
+    "aug_length": 252,
+    "window_size": 64,
+    "ahead": 1,
+    "hidden_dim": 32,
+    "loss": "mae",
+    "protocols": [
+      "continuous_chunked",
+      "independent_fixed",
+      "continuous_cross_refit_scaler"
+    ]
+  },
+  "used_stored_sisc_artifacts": true,
+  "used_stored_pgm_pem_checkpoints": true,
+  "postprocessed_at": "2026-05-13 01:16:29"
+}

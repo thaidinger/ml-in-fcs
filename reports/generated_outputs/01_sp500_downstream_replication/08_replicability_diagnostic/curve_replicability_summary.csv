@@ -1,0 +1,8 @@
+run_set,experiment,protocol,x_column,baseline_x,baseline_mape,best_x,best_mape,best_pct_vs_baseline,final_x,final_mape,final_pct_vs_baseline,n_points,monotonic_down_steps,monotonic_up_steps
+resource_aware_tatr_1day,TATR,author_style_independent_blocks,augmentation_idx,0,0.0574372212092081,2,0.0550055131316185,-4.23367987934583,10,0.0874582255880038,52.26750832782777,11,3,7
+author_style_tatr_1day,TATR,author_style_independent_blocks,augmentation_idx,0,0.0643005715683102,2,0.0608115885406732,-5.426052898970668,10,0.0929055279120802,44.48631737803653,11,3,7
+author_style_tatr_5day,TATR,author_style_independent_blocks,augmentation_idx,0,0.078828640282154,2,0.0787219032645225,-0.1354038548038576,40,0.1572512686252594,99.48494362252686,41,17,23
+reduced_prices_tatr_1day_50epoch,TATR,author_style_independent_blocks,augmentation_idx,0,0.1073226919397711,2,0.0916157569736242,-14.635241328983389,10,0.147147330455482,37.107379432916446,11,4,6
+single_diagnostic_tatr_1day,TATR,single_continuous_trajectory,augmentation_blocks,0,0.0660485923290252,50,0.0068487641401588,-89.63071899240298,100,0.0191099364310503,-71.0668528167066,11,5,5
+resource_aware_tmtr_1day,TMTR,author_style_mix,synthetic_proportion_pct,0,0.1020084644357363,10,0.0979998682936032,-3.92967011542307,100,0.4845824440320332,375.0414063308564,11,2,8
+reduced_prices_tmtr_1day_50epoch,TMTR,author_style_mix,synthetic_proportion_pct,0,0.1469845827668905,10,0.1418868666514754,-3.468197833714162,100,0.4976370334625244,238.56410250301522,11,1,9

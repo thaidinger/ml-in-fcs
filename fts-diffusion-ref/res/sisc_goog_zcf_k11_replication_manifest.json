@@ -1,0 +1,38 @@
+[
+  {
+    "asset": "goog",
+    "ticker": "GOOG",
+    "data_path": "fts-diffusion-ref/data/goog_timeseries.csv",
+    "n_prices": 3775,
+    "k": 11,
+    "max_iters": 20,
+    "n_centroids": 11,
+    "n_labels": 258,
+    "n_subsequences": 258,
+    "n_segmentation_boundaries": 259,
+    "artifacts": {
+      "centroids": "fts-diffusion-ref/res/sisc_goog_k11_l10-21_dba_kmpp_centroids.csv",
+      "labels": "fts-diffusion-ref/res/sisc_goog_k11_l10-21_dba_kmpp_labels.csv",
+      "subsequences": "fts-diffusion-ref/res/sisc_goog_k11_l10-21_dba_kmpp_subsequences.csv",
+      "segmentation": "fts-diffusion-ref/res/sisc_goog_k11_l10-21_dba_kmpp_segmentation.csv"
+    }
+  },
+  {
+    "asset": "zcf",
+    "ticker": "ZC=F",
+    "data_path": "fts-diffusion-ref/data/zcf_timeseries.csv",
+    "n_prices": 4763,
+    "k": 11,
+    "max_iters": 20,
+    "n_centroids": 11,
+    "n_labels": 321,
+    "n_subsequences": 321,
+    "n_segmentation_boundaries": 322,
+    "artifacts": {
+      "centroids": "fts-diffusion-ref/res/sisc_zcf_k11_l10-21_dba_kmpp_centroids.csv",
+      "labels": "fts-diffusion-ref/res/sisc_zcf_k11_l10-21_dba_kmpp_labels.csv",
+      "subsequences": "fts-diffusion-ref/res/sisc_zcf_k11_l10-21_dba_kmpp_subsequences.csv",
+      "segmentation": "fts-diffusion-ref/res/sisc_zcf_k11_l10-21_dba_kmpp_segmentation.csv"
+    }
+  }
+]

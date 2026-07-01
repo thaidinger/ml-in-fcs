@@ -1,0 +1,7 @@
+drift_penalty:
+  enabled: false
+  weight: 0.0
+  standardize: true
+  warmup_epochs: 0
+  target: proxy_reconstructed_segments
+  min_sequence_length: 8

@@ -1,0 +1,42 @@
+{
+  "output": "reports/generated_outputs/03_appendix_b3_simulated_sisc/14_b3_sisc_simulated_replication",
+  "seed": 42,
+  "max_iters": 10,
+  "k_true": 4,
+  "series_length": 10000,
+  "n_ground_truth_segments": 668,
+  "multi_pattern": {
+    "paper_avg_per_unit_dtw": 0.01,
+    "ours_avg_per_unit_dtw": 0.040013211364255175,
+    "paper_jaccard": 0.784,
+    "ours_boundary_jaccard_tol2": 0.3956692913385827,
+    "ours_pointwise_label_accuracy": 0.5745447268361017,
+    "ours_per_segment_majority_accuracy": 0.6691616766467066,
+    "alignment_gt_to_sisc": {
+      "0": 2,
+      "1": 1,
+      "2": 3,
+      "3": 0
+    }
+  },
+  "one_pattern": {
+    "paper_per_unit_dtw": 0.009,
+    "ours_avg_per_unit_dtw": 0.03451284289733882,
+    "paper_boundary_jaccard": 0.938,
+    "ours_avg_boundary_jaccard_tol2": 0.295000687894175
+  },
+  "files": [
+    "fig8_one_pattern_metrics.csv",
+    "fig8_one_pattern_replication.pdf",
+    "fig8_one_pattern_replication.png",
+    "fig9_centroid_distance_matrix.csv",
+    "fig9_confusion_matrix.csv",
+    "fig9_confusion_matrix.pdf",
+    "fig9_confusion_matrix.png",
+    "fig9_multi_pattern_metrics.csv",
+    "fig9_multi_pattern_replication.pdf",
+    "fig9_multi_pattern_replication.png",
+    "classification_report.txt",
+    "manifest.json"
+  ]
+}

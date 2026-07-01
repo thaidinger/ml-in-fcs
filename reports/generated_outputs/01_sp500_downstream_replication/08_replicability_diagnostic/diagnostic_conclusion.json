@@ -1,0 +1,17 @@
+{
+  "diagnosis": "not_replicable_with_released_reference_code_and_stored_sp500_artifacts",
+  "scope": "This is a reproducibility conclusion about the available code/checkpoints/artifacts and our resource-aware reruns, not proof of author intent.",
+  "author_style_final_improves_any_curve": false,
+  "author_style_strong_final_improves_any_curve": false,
+  "single_diagnostic_final_pct_vs_baseline": -71.0668528167066,
+  "single_diagnostic_best_pct_vs_baseline": -89.63071899240298,
+  "evidence": [
+    "Reference README calls paper-like TATR/TMTR with prices, ahead=1, window=64, hidden=32, loss=mae, epochs=100.",
+    "Reference TATR code adds independent generated 252-day blocks from a fixed first segment; it is not a continuous trajectory protocol.",
+    "Our resource-aware author-style one-day TATR run has final MAPE worse than baseline.",
+    "Our separate author-style one-day and five-day TATR runs also have final MAPE worse than baseline.",
+    "Stored SP500 author-protocol audit has final MAPE much worse than baseline.",
+    "The only strong paper-like downward behavior appears in the single continuous-trajectory diagnostic, which differs from the released author TATR protocol.",
+    "Synthetic price-level audit shows independent blocks stay near the early initial level, while continuous trajectories drift across/above the test-period scale."
+  ]
+}

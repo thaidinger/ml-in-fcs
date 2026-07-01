@@ -1,0 +1,2 @@
+asset,protocol,synthetic_days,linear_fit_r2,real_return_sd,synthetic_return_sd,real_to_synthetic_sd_ratio,pgm_decoder_cross_pattern_sd_upper_bound,source
+sp500,continuous_rollout,25200,0.99999,0.0109,0.00046,23.695652173913043,0.001,tracked paper diagnostic used for Figure 05

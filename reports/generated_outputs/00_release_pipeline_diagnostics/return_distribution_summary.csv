@@ -1,0 +1,7 @@
+asset,protocol,real_sd,synthetic_sd,mean_ks_p,indistinguishable_pct,windows,window_length,real_to_synthetic_sd_ratio
+sp500,authors,0.0109,0.0045,0.0009,0,300,60,2.4222222222222225
+sp500,continuous,0.0109,0.00046,4e-07,0,300,60,23.695652173913043
+goog,authors,0.0184,0.0026,6e-05,0,300,60,7.0769230769230775
+goog,continuous,0.0184,0.00029,4e-07,0,300,60,63.44827586206896
+zcf,authors,0.0181,0.0028,2e-05,0,300,60,6.464285714285715
+zcf,continuous,0.0181,0.00041,1e-06,0,300,60,44.146341463414636
